@@ -2,7 +2,7 @@
 import React from "react";
 import { useNotifications } from "@/contexts/NotificationContext";
 import { Button } from "@/components/ui/button";
-import { Bell, Star, ShoppingCart, Package } from "lucide-react";
+import { Bell, Star, ShoppingCart, Package, MessageCircle } from "lucide-react";
 import Navbar from "@/components/layout/Navbar";
 import { Badge } from "@/components/ui/badge";
 
@@ -16,7 +16,7 @@ const Notifications: React.FC = () => {
       case 'service':
         return <Package size={16} className="mr-2" />;
       case 'review':
-        return <Star size={16} className="mr-2" />;
+        return <MessageCircle size={16} className="mr-2" />;
       case 'order':
         return <ShoppingCart size={16} className="mr-2" />;
       default:
@@ -90,9 +90,8 @@ const Notifications: React.FC = () => {
                     <p className="text-sm ml-10">{notification.message}</p>
                     
                     {notification.type === 'review' && notification.rating && (
-                      <div className="mt-2 ml-10">
+                      <div className="mt-2 ml-10 bg-gray-50 p-3 rounded-md">
                         <div className="flex items-center">
-                          <p className="text-sm mr-2">Rating: </p>
                           {[1, 2, 3, 4, 5].map((star) => (
                             <Star
                               key={star}
@@ -102,6 +101,9 @@ const Notifications: React.FC = () => {
                               className="mr-0.5"
                             />
                           ))}
+                          <span className="ml-2 text-sm font-medium">
+                            {notification.rating} of 5
+                          </span>
                         </div>
                       </div>
                     )}

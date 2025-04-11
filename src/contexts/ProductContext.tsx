@@ -6,6 +6,7 @@ import { useAuth } from "./AuthContext";
 export type ProductReview = {
   id: string;
   productId: string;
+  orderId: string; // Added orderId to track which order this review is for
   userId: string;
   userName: string;
   rating: number;
@@ -35,7 +36,7 @@ type ProductContextType = {
   deleteProduct: (id: string) => void;
   getProductById: (id: string) => Product | undefined;
   getProductsByCategory: (category: "goods" | "services") => Product[];
-  addReview: (productId: string, rating: number, comment: string) => void;
+  addReview: (productId: string, rating: number, comment: string, orderId?: string) => void;
   getSellerRating: (sellerId: string) => { average: number; count: number };
 };
 
@@ -190,7 +191,7 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
     return sum / reviews.length;
   };
 
-  const addReview = (productId: string, rating: number, comment: string) => {
+  const addReview = (productId: string, rating: number, comment: string, orderId?: string) => {
     if (!user) {
       toast({
         title: "Authentication required",
@@ -203,6 +204,7 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
     const newReview: ProductReview = {
       id: Date.now().toString(),
       productId,
+      orderId: orderId || Date.now().toString(), // Use the provided orderId or generate one
       userId: user.id,
       userName: user.name,
       rating,

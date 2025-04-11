@@ -1,16 +1,46 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { ShoppingCart } from "lucide-react";
+import { ShoppingCart, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Order } from "@/contexts/OrderContext";
+import ReviewModal from "./ReviewModal";
+import { useProducts } from "@/contexts/ProductContext";
 
 interface PurchasesTabProps {
   userOrders: Order[];
 }
 
 const PurchasesTab: React.FC<PurchasesTabProps> = ({ userOrders }) => {
+  const [reviewItem, setReviewItem] = useState<null | {
+    id: string;
+    title: string;
+    image?: string;
+    sellerId: string;
+  }>(null);
+  const { products } = useProducts();
+  
+  const handleReviewClick = (itemId: string, itemTitle: string, itemImage?: string) => {
+    const product = products.find(p => p.id === itemId);
+    if (product) {
+      setReviewItem({
+        id: itemId,
+        title: itemTitle,
+        image: itemImage,
+        sellerId: product.sellerId
+      });
+    }
+  };
+
+  const hasReviewed = (orderId: string, itemId: string): boolean => {
+    const product = products.find(p => p.id === itemId);
+    if (product && product.reviews) {
+      return product.reviews.some(review => review.orderId === orderId);
+    }
+    return false;
+  };
+
   return (
     <div className="space-y-4">
       <h2 className="text-xl font-semibold mb-4">Your Purchases</h2>
@@ -40,29 +70,42 @@ const PurchasesTab: React.FC<PurchasesTabProps> = ({ userOrders }) => {
               </div>
               
               <div className="space-y-2 mb-4">
-                {order.items.map((item) => (
-                  <div key={item.id} className="flex justify-between items-center bg-gray-50 p-2 rounded">
-                    <div className="flex items-center">
-                      <img
-                        src={item.image || "https://via.placeholder.com/40"}
-                        alt={item.title}
-                        className="w-10 h-10 object-cover rounded-md mr-2"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.src = "https://via.placeholder.com/40";
-                        }}
-                      />
-                      <div>
-                        <p className="text-sm">{item.title}</p>
-                        <Badge variant="outline">{item.category}</Badge>
+                {order.items.map((item) => {
+                  const reviewed = hasReviewed(order.id, item.id);
+                  return (
+                    <div key={item.id} className="flex justify-between items-center bg-gray-50 p-2 rounded">
+                      <div className="flex items-center flex-1">
+                        <img
+                          src={item.image || "https://via.placeholder.com/40"}
+                          alt={item.title}
+                          className="w-10 h-10 object-cover rounded-md mr-2"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.src = "https://via.placeholder.com/40";
+                          }}
+                        />
+                        <div>
+                          <p className="text-sm">{item.title}</p>
+                          <Badge variant="outline">{item.category}</Badge>
+                        </div>
                       </div>
+                      <div className="text-right mr-4">
+                        <p className="font-medium">₹{item.price.toFixed(2)}</p>
+                        <p className="text-xs text-gray-500">Qty: {item.quantity}</p>
+                      </div>
+                      <Button 
+                        variant={reviewed ? "outline" : "default"} 
+                        size="sm" 
+                        className="flex items-center"
+                        onClick={() => handleReviewClick(item.id, item.title, item.image)}
+                        disabled={reviewed}
+                      >
+                        <Star className="mr-1" size={16} />
+                        {reviewed ? "Reviewed" : "Review"}
+                      </Button>
                     </div>
-                    <div className="text-right">
-                      <p className="font-medium">₹{item.price.toFixed(2)}</p>
-                      <p className="text-xs text-gray-500">Qty: {item.quantity}</p>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
               
               <div className="flex justify-between border-t pt-3">
@@ -72,6 +115,17 @@ const PurchasesTab: React.FC<PurchasesTabProps> = ({ userOrders }) => {
             </div>
           ))}
         </div>
+      )}
+      
+      {reviewItem && (
+        <ReviewModal 
+          isOpen={!!reviewItem}
+          onClose={() => setReviewItem(null)}
+          productId={reviewItem.id}
+          productTitle={reviewItem.title}
+          productImage={reviewItem.image}
+          sellerId={reviewItem.sellerId}
+        />
       )}
     </div>
   );

@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useContext, useEffect, ReactNode } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "./AuthContext";
@@ -144,7 +145,7 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
           addNotification({
             title: "New Order!",
             message: `Someone has purchased your ${cartItems.length > 1 ? 'items' : 'item'}.`,
-            type: "product",
+            type: "order",
             item: {
               id: newOrder.id,
               title: "Order",

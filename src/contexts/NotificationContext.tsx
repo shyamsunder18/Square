@@ -2,17 +2,20 @@
 import React, { createContext, useState, useContext, useEffect, ReactNode } from "react";
 import { toast } from "sonner";
 
+export type NotificationType = "product" | "service" | "review" | "order" | "system";
+
 export type Notification = {
   id: string;
   title: string;
   message: string;
-  type: "product" | "service";
+  type: NotificationType;
   item: {
     id: string;
     title: string;
   };
   read: boolean;
   createdAt: string;
+  rating?: number;
 };
 
 type NotificationContextType = {

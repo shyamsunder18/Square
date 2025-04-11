@@ -1,6 +1,17 @@
+
 import React, { createContext, useState, useContext, useEffect, ReactNode } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "./AuthContext";
+
+export type ProductReview = {
+  id: string;
+  productId: string;
+  userId: string;
+  userName: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
+};
 
 export type Product = {
   id: string;
@@ -12,16 +23,20 @@ export type Product = {
   count?: number;
   sellerId: string;
   createdAt: string;
+  reviews?: ProductReview[];
+  averageRating?: number;
 };
 
 type ProductContextType = {
   products: Product[];
   userProducts: Product[];
-  addProduct: (product: Omit<Product, "id" | "sellerId" | "createdAt">) => void;
-  updateProduct: (id: string, updates: Partial<Omit<Product, "id" | "sellerId" | "createdAt">>) => void;
+  addProduct: (product: Omit<Product, "id" | "sellerId" | "createdAt" | "reviews" | "averageRating">) => void;
+  updateProduct: (id: string, updates: Partial<Omit<Product, "id" | "sellerId" | "createdAt" | "reviews" | "averageRating">>) => void;
   deleteProduct: (id: string) => void;
   getProductById: (id: string) => Product | undefined;
   getProductsByCategory: (category: "goods" | "services") => Product[];
+  addReview: (productId: string, rating: number, comment: string) => void;
+  getSellerRating: (sellerId: string) => { average: number; count: number };
 };
 
 const ProductContext = createContext<ProductContextType | undefined>(undefined);
@@ -50,7 +65,9 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
           category: "goods",
           count: 10,
           sellerId: "demo1",
-          createdAt: new Date().toISOString()
+          createdAt: new Date().toISOString(),
+          reviews: [],
+          averageRating: 0
         },
         {
           id: "2",
@@ -61,7 +78,9 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
           category: "goods",
           count: 5,
           sellerId: "demo1",
-          createdAt: new Date().toISOString()
+          createdAt: new Date().toISOString(),
+          reviews: [],
+          averageRating: 0
         },
         {
           id: "3",
@@ -71,7 +90,9 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
           image: "https://images.unsplash.com/photo-1498050108023-c5249f4df085",
           category: "services",
           sellerId: "demo2",
-          createdAt: new Date().toISOString()
+          createdAt: new Date().toISOString(),
+          reviews: [],
+          averageRating: 0
         },
         {
           id: "4",
@@ -81,7 +102,9 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
           image: "https://images.unsplash.com/photo-1560066984-138dadb4c035",
           category: "services",
           sellerId: "demo2",
-          createdAt: new Date().toISOString()
+          createdAt: new Date().toISOString(),
+          reviews: [],
+          averageRating: 0
         }
       ];
       
@@ -99,7 +122,7 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
     ? products.filter((product) => product.sellerId === user.id)
     : [];
 
-  const addProduct = (product: Omit<Product, "id" | "sellerId" | "createdAt">) => {
+  const addProduct = (product: Omit<Product, "id" | "sellerId" | "createdAt" | "reviews" | "averageRating">) => {
     if (!user) {
       toast({
         title: "Authentication required",
@@ -114,6 +137,8 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
       id: Date.now().toString(),
       sellerId: user.id,
       createdAt: new Date().toISOString(),
+      reviews: [],
+      averageRating: 0
     };
     
     setProducts((prev) => [...prev, newProduct]);
@@ -126,7 +151,7 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   const updateProduct = (
     id: string,
-    updates: Partial<Omit<Product, "id" | "sellerId" | "createdAt">>
+    updates: Partial<Omit<Product, "id" | "sellerId" | "createdAt" | "reviews" | "averageRating">>
   ) => {
     setProducts((prev) =>
       prev.map((product) =>
@@ -159,6 +184,86 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
     return products.filter((product) => product.category === category);
   };
 
+  const calculateAverageRating = (reviews: ProductReview[]) => {
+    if (reviews.length === 0) return 0;
+    const sum = reviews.reduce((acc, review) => acc + review.rating, 0);
+    return sum / reviews.length;
+  };
+
+  const addReview = (productId: string, rating: number, comment: string) => {
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "You must be logged in to add reviews.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const newReview: ProductReview = {
+      id: Date.now().toString(),
+      productId,
+      userId: user.id,
+      userName: user.name,
+      rating,
+      comment,
+      createdAt: new Date().toISOString()
+    };
+
+    setProducts((prev) => 
+      prev.map((product) => {
+        if (product.id === productId) {
+          const updatedReviews = [...(product.reviews || []), newReview];
+          const averageRating = calculateAverageRating(updatedReviews);
+          
+          return {
+            ...product,
+            reviews: updatedReviews,
+            averageRating
+          };
+        }
+        return product;
+      })
+    );
+    
+    // Find the seller of this product to notify them
+    const product = products.find(p => p.id === productId);
+    
+    if (product) {
+      const { sellerId, title } = product;
+      
+      // This is a placeholder for notification system integration
+      // You would add a notification for the seller here
+      console.log(`Notification for seller ${sellerId} about review on ${title}`);
+    }
+    
+    toast({
+      title: "Review added",
+      description: "Your review has been successfully submitted.",
+    });
+  };
+
+  const getSellerRating = (sellerId: string) => {
+    const sellerProducts = products.filter(product => product.sellerId === sellerId);
+    
+    let totalRatings = 0;
+    let reviewCount = 0;
+    
+    sellerProducts.forEach(product => {
+      if (product.reviews && product.reviews.length > 0) {
+        product.reviews.forEach(() => {
+          reviewCount++;
+        });
+        totalRatings += (product.averageRating || 0) * (product.reviews.length);
+      }
+    });
+    
+    return {
+      average: reviewCount > 0 ? totalRatings / reviewCount : 0,
+      count: reviewCount
+    };
+  };
+
   return (
     <ProductContext.Provider
       value={{
@@ -169,6 +274,8 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
         deleteProduct,
         getProductById,
         getProductsByCategory,
+        addReview,
+        getSellerRating,
       }}
     >
       {children}

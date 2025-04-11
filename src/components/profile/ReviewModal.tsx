@@ -26,7 +26,7 @@ const ReviewModal: React.FC<ReviewModalProps> = ({
   productImage,
   sellerId
 }) => {
-  const [rating, setRating] = useState(5);
+  const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { addReview } = useProducts();

@@ -29,13 +29,13 @@ const CartItemComponent: React.FC<{ item: CartItem }> = ({ item }) => {
         
         <div>
           <h3 className="font-medium">{item.title}</h3>
-          <p className="text-gray-500 text-sm">${item.price.toFixed(2)} each</p>
+          <p className="text-gray-500 text-sm">₹{item.price.toFixed(2)} each</p>
         </div>
       </div>
       
       <div className="flex items-center gap-4 w-full sm:w-auto">
         <div className="flex items-center">
-          <label htmlFor={`qty-${item.id}`} className="text-sm mr-2">Qty:</label>
+          <label htmlFor={`qty-₹{item.id}`} className="text-sm mr-2">Qty:</label>
           <select
             id={`qty-${item.id}`}
             value={item.quantity}
@@ -51,7 +51,7 @@ const CartItemComponent: React.FC<{ item: CartItem }> = ({ item }) => {
         </div>
         
         <div className="font-semibold">
-          ${(item.price * item.quantity).toFixed(2)}
+          ₹{(item.price * item.quantity).toFixed(2)}
         </div>
         
         <Button
@@ -113,7 +113,7 @@ const Cart: React.FC = () => {
                 
                 <div className="flex justify-between text-xl font-bold">
                   <span>Total:</span>
-                  <span>${getTotalPrice().toFixed(2)}</span>
+                  <span>₹{getTotalPrice().toFixed(2)}</span>
                 </div>
                 
                 <Button 

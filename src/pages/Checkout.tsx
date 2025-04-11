@@ -182,7 +182,7 @@ const Checkout: React.FC = () => {
                     className="w-full py-6"
                     disabled={isProcessing}
                   >
-                    {isProcessing ? "Processing..." : `Pay $${getTotalPrice().toFixed(2)}`}
+                    {isProcessing ? "Processing..." : `Pay ₹${getTotalPrice().toFixed(2)}`}
                   </Button>
                 </form>
               </div>

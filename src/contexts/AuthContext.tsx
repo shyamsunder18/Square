@@ -1,6 +1,5 @@
-
 import React, { createContext, useState, useContext, useEffect, ReactNode } from "react";
-import { useToast } from "@/components/ui/toast";
+import { useToast } from "@/hooks/use-toast";
 
 type User = {
   id: string;

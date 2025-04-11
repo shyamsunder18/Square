@@ -1,11 +1,10 @@
-
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "@/contexts/CartContext";
 import { useOrders } from "@/contexts/OrderContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useToast } from "@/components/ui/toast";
+import { useToast } from "@/hooks/use-toast";
 import Navbar from "@/components/layout/Navbar";
 
 const Checkout: React.FC = () => {
@@ -25,7 +24,6 @@ const Checkout: React.FC = () => {
   const [cardCvv, setCardCvv] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Redirect to cart if cart is empty
   React.useEffect(() => {
     if (cartItems.length === 0) {
       navigate("/cart");
@@ -35,7 +33,6 @@ const Checkout: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Simple validation
     if (!name || !email || !address || !city || !state || !zip || !cardNumber || !cardExpiry || !cardCvv) {
       toast({
         title: "Missing information",
@@ -48,11 +45,9 @@ const Checkout: React.FC = () => {
     setIsProcessing(true);
     
     try {
-      // Process the order
       const orderId = await createOrder();
       
       if (orderId) {
-        // Navigate to success page
         navigate(`/order-success/${orderId}`);
       } else {
         throw new Error("Failed to create order.");
@@ -76,7 +71,6 @@ const Checkout: React.FC = () => {
           <h1 className="text-3xl font-bold mb-8">Checkout</h1>
           
           <div className="grid md:grid-cols-3 gap-8">
-            {/* Checkout Form */}
             <div className="md:col-span-2">
               <div className="bg-white rounded-lg shadow-sm p-6">
                 <form onSubmit={handleSubmit} className="space-y-6">
@@ -194,7 +188,6 @@ const Checkout: React.FC = () => {
               </div>
             </div>
             
-            {/* Order Summary */}
             <div>
               <div className="bg-white rounded-lg shadow-sm p-6">
                 <h2 className="text-xl font-semibold mb-4">Order Summary</h2>

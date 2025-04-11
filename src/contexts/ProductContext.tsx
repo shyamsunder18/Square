@@ -57,56 +57,8 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
     // Initialize with demo products if none exist
     else {
       const demoProducts: Product[] = [
-        {
-          id: "1",
-          title: "Wireless Headphones",
-          description: "High-quality wireless headphones with noise cancellation.",
-          price: 149.99,
-          image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e",
-          category: "goods",
-          count: 10,
-          sellerId: "demo1",
-          createdAt: new Date().toISOString(),
-          reviews: [],
-          averageRating: 0
-        },
-        {
-          id: "2",
-          title: "Smart Watch",
-          description: "Smart watch with health tracking features.",
-          price: 199.99,
-          image: "https://images.unsplash.com/photo-1523275335684-37898b6baf30",
-          category: "goods",
-          count: 5,
-          sellerId: "demo1",
-          createdAt: new Date().toISOString(),
-          reviews: [],
-          averageRating: 0
-        },
-        {
-          id: "3",
-          title: "Web Development",
-          description: "Professional web development services for your business.",
-          price: 599.99,
-          image: "https://images.unsplash.com/photo-1498050108023-c5249f4df085",
-          category: "services",
-          sellerId: "demo2",
-          createdAt: new Date().toISOString(),
-          reviews: [],
-          averageRating: 0
-        },
-        {
-          id: "4",
-          title: "Hair Styling",
-          description: "Professional hair styling at your location.",
-          price: 49.99,
-          image: "https://images.unsplash.com/photo-1560066984-138dadb4c035",
-          category: "services",
-          sellerId: "demo2",
-          createdAt: new Date().toISOString(),
-          reviews: [],
-          averageRating: 0
-        }
+      
+       
       ];
       
       setProducts(demoProducts);

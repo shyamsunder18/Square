@@ -103,12 +103,12 @@ const Cart: React.FC = () => {
               <div className="mt-8 border-t pt-4">
                 <div className="flex justify-between mb-2">
                   <span>Subtotal ({getTotalItems()} items):</span>
-                  <span className="font-semibold">${getTotalPrice().toFixed(2)}</span>
+                  <span className="font-semibold">₹{getTotalPrice().toFixed(2)}</span>
                 </div>
                 
                 <div className="flex justify-between mb-4">
                   <span>Shipping:</span>
-                  <span className="font-semibold">$0.00</span>
+                  <span className="font-semibold">₹0.00</span>
                 </div>
                 
                 <div className="flex justify-between text-xl font-bold">

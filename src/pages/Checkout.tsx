@@ -210,7 +210,7 @@ const Checkout: React.FC = () => {
                           <p className="text-xs text-gray-500">Qty: {item.quantity}</p>
                         </div>
                       </div>
-                      <span className="font-medium">${(item.price * item.quantity).toFixed(2)}</span>
+                      <span className="font-medium">₹{(item.price * item.quantity).toFixed(2)}</span>
                     </div>
                   ))}
                 </div>
@@ -218,15 +218,15 @@ const Checkout: React.FC = () => {
                 <div className="border-t mt-4 pt-4">
                   <div className="flex justify-between mb-1">
                     <span>Subtotal</span>
-                    <span>${getTotalPrice().toFixed(2)}</span>
+                    <span>₹{getTotalPrice().toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between mb-1">
                     <span>Shipping</span>
-                    <span>$0.00</span>
+                    <span>₹0.00</span>
                   </div>
                   <div className="flex justify-between font-semibold text-lg mt-2">
                     <span>Total</span>
-                    <span>${getTotalPrice().toFixed(2)}</span>
+                    <span>₹{getTotalPrice().toFixed(2)}</span>
                   </div>
                 </div>
               </div>

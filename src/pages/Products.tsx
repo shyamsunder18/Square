@@ -1,7 +1,7 @@
 
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { ShoppingCart, Search, X } from "lucide-react";
+import { ShoppingCart, Search, Star } from "lucide-react";
 import { useProducts } from "@/contexts/ProductContext";
 import { useCart } from "@/contexts/CartContext";
 import { Button } from "@/components/ui/button";
@@ -92,6 +92,30 @@ const Products: React.FC = () => {
                     </div>
                     
                     <p className="text-gray-500 text-sm mb-3 line-clamp-2">{product.description}</p>
+                    
+                    {/* Display product rating */}
+                    <div className="flex items-center mb-2">
+                      {product.averageRating && product.averageRating > 0 ? (
+                        <>
+                          <div className="flex items-center">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <Star
+                                key={star}
+                                size={14}
+                                fill={star <= Math.round(product.averageRating || 0) ? "gold" : "transparent"}
+                                color={star <= Math.round(product.averageRating || 0) ? "gold" : "gray"}
+                                className="mr-0.5"
+                              />
+                            ))}
+                          </div>
+                          <span className="text-sm text-gray-500 ml-1">
+                            {product.averageRating.toFixed(1)} ({product.reviews?.length || 0} reviews)
+                          </span>
+                        </>
+                      ) : (
+                        <span className="text-sm text-gray-500">No reviews yet</span>
+                      )}
+                    </div>
                     
                     {product.count !== undefined && product.count > 0 && (
                       <p className="text-sm text-gray-600 mb-2">

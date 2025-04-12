@@ -16,6 +16,8 @@ interface ReviewModalProps {
   productTitle: string;
   productImage?: string;
   sellerId: string;
+  orderId: string;
+  existingReview?: boolean;
 }
 
 const ReviewModal: React.FC<ReviewModalProps> = ({
@@ -24,12 +26,14 @@ const ReviewModal: React.FC<ReviewModalProps> = ({
   productId,
   productTitle,
   productImage,
-  sellerId
+  sellerId,
+  orderId,
+  existingReview = false
 }) => {
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { addReview } = useProducts();
+  const { addReview, getProductById } = useProducts();
   const { toast } = useToast();
   const { user } = useAuth();
   const { addNotification } = useNotifications();
@@ -37,13 +41,25 @@ const ReviewModal: React.FC<ReviewModalProps> = ({
   const handleSubmit = () => {
     if (!user) return;
     
+    // Check if this user has already reviewed this product for this order
+    const product = getProductById(productId);
+    if (existingReview) {
+      toast({
+        title: "Review already submitted",
+        description: "You have already reviewed this item",
+        variant: "destructive"
+      });
+      onClose();
+      return;
+    }
+    
     setIsSubmitting(true);
     
     try {
-      // Add the review
-      addReview(productId, rating, comment);
+      // Add the review with the orderId
+      addReview(productId, rating, comment, orderId);
       
-      // Send notification to seller
+      // Send notification ONLY to the seller
       addNotification({
         title: "New Review Received!",
         message: `${user.name} left a ${rating}-star review for "${productTitle}"`,
@@ -52,7 +68,8 @@ const ReviewModal: React.FC<ReviewModalProps> = ({
           id: productId,
           title: productTitle,
         },
-        rating: rating
+        rating: rating,
+        receiverId: sellerId // This ensures only the seller receives the notification
       });
       
       toast({
@@ -129,7 +146,7 @@ const ReviewModal: React.FC<ReviewModalProps> = ({
           <div className="flex justify-end space-x-2">
             <Button variant="outline" onClick={onClose}>Cancel</Button>
             <Button 
-              disabled={isSubmitting || !comment.trim()} 
+              disabled={isSubmitting || !comment.trim() || rating === 0} 
               onClick={handleSubmit}
             >
               Submit Review

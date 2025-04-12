@@ -1,7 +1,7 @@
 
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { ShoppingCart, Search } from "lucide-react";
+import { ShoppingCart, Search, Star } from "lucide-react";
 import { useProducts } from "@/contexts/ProductContext";
 import { useCart } from "@/contexts/CartContext";
 import { Button } from "@/components/ui/button";
@@ -83,6 +83,30 @@ const Services: React.FC = () => {
                     </div>
                     
                     <p className="text-gray-500 text-sm mb-3 line-clamp-2">{service.description}</p>
+                    
+                    {/* Display service rating */}
+                    <div className="flex items-center mb-2">
+                      {service.averageRating && service.averageRating > 0 ? (
+                        <>
+                          <div className="flex items-center">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <Star
+                                key={star}
+                                size={14}
+                                fill={star <= Math.round(service.averageRating || 0) ? "gold" : "transparent"}
+                                color={star <= Math.round(service.averageRating || 0) ? "gold" : "gray"}
+                                className="mr-0.5"
+                              />
+                            ))}
+                          </div>
+                          <span className="text-sm text-gray-500 ml-1">
+                            {service.averageRating.toFixed(1)} ({service.reviews?.length || 0} reviews)
+                          </span>
+                        </>
+                      ) : (
+                        <span className="text-sm text-gray-500">No reviews yet</span>
+                      )}
+                    </div>
                     
                     <div className="flex justify-between items-center mt-4">
                       <span className="text-xl font-bold">₹{service.price.toFixed(2)}</span>

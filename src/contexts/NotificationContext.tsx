@@ -1,6 +1,7 @@
 
 import React, { createContext, useState, useContext, useEffect, ReactNode } from "react";
 import { toast } from "sonner";
+import { useAuth } from "./AuthContext";
 
 export type NotificationType = "product" | "service" | "review" | "order" | "system";
 
@@ -16,6 +17,7 @@ export type Notification = {
   read: boolean;
   createdAt: string;
   rating?: number;
+  receiverId?: string; // ID of the user who should receive this notification
 };
 
 type NotificationContextType = {
@@ -32,6 +34,7 @@ const NotificationContext = createContext<NotificationContextType | undefined>(u
 export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const { user } = useAuth();
 
   useEffect(() => {
     // Load notifications from localStorage
@@ -45,12 +48,20 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     // Update localStorage when notifications change
     localStorage.setItem("notifications", JSON.stringify(notifications));
     
-    // Update unread count
-    const count = notifications.filter((n) => !n.read).length;
+    // Update unread count - only count notifications for the current user
+    const count = notifications.filter(n => 
+      !n.read && 
+      (!n.receiverId || n.receiverId === user?.id)
+    ).length;
     setUnreadCount(count);
-  }, [notifications]);
+  }, [notifications, user]);
 
   const addNotification = (notification: Omit<Notification, "id" | "read" | "createdAt">) => {
+    // If the notification has a receiverId and it's not the current user, don't add it
+    if (notification.receiverId && user?.id !== notification.receiverId) {
+      return;
+    }
+    
     const newNotification: Notification = {
       ...notification,
       id: Date.now().toString(),
@@ -85,7 +96,9 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   return (
     <NotificationContext.Provider
       value={{
-        notifications,
+        notifications: notifications.filter(n => 
+          !n.receiverId || n.receiverId === user?.id
+        ),
         unreadCount,
         addNotification,
         markAsRead,

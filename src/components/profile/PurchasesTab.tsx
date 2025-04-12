@@ -1,132 +1,135 @@
 
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
-import { ShoppingCart, Star } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Order } from "@/contexts/OrderContext";
-import ReviewModal from "./ReviewModal";
+import { useOrders } from "@/contexts/OrderContext";
 import { useProducts } from "@/contexts/ProductContext";
+import { Button } from "@/components/ui/button";
+import { 
+  Table, 
+  TableHeader, 
+  TableRow, 
+  TableHead, 
+  TableBody, 
+  TableCell 
+} from "@/components/ui/table";
+import ReviewModal from "./ReviewModal";
 
-interface PurchasesTabProps {
-  userOrders: Order[];
-}
-
-const PurchasesTab: React.FC<PurchasesTabProps> = ({ userOrders }) => {
-  const [reviewItem, setReviewItem] = useState<null | {
-    id: string;
-    title: string;
-    image?: string;
+const PurchasesTab: React.FC = () => {
+  const { getUserOrders } = useOrders();
+  const { getProductById } = useProducts();
+  const [reviewModal, setReviewModal] = useState<{
+    isOpen: boolean;
+    productId: string;
+    productTitle: string;
+    productImage?: string;
     sellerId: string;
-  }>(null);
-  const { products } = useProducts();
+    orderId: string;
+    existingReview: boolean;
+  }>({
+    isOpen: false,
+    productId: "",
+    productTitle: "",
+    productImage: "",
+    sellerId: "",
+    orderId: "",
+    existingReview: false
+  });
   
-  const handleReviewClick = (itemId: string, itemTitle: string, itemImage?: string) => {
-    const product = products.find(p => p.id === itemId);
-    if (product) {
-      setReviewItem({
-        id: itemId,
-        title: itemTitle,
-        image: itemImage,
-        sellerId: product.sellerId
-      });
-    }
+  const userOrders = getUserOrders();
+  
+  const hasUserReviewedProduct = (productId: string, orderId: string) => {
+    const product = getProductById(productId);
+    if (!product || !product.reviews) return false;
+    
+    return product.reviews.some(review => review.orderId === orderId);
   };
-
-  const hasReviewed = (orderId: string, itemId: string): boolean => {
-    const product = products.find(p => p.id === itemId);
-    if (product && product.reviews) {
-      return product.reviews.some(review => review.orderId === orderId);
-    }
-    return false;
-  };
-
+  
   return (
-    <div className="space-y-4">
-      <h2 className="text-xl font-semibold mb-4">Your Purchases</h2>
+    <div className="space-y-6">
+      <h3 className="text-lg font-medium">Your Purchases</h3>
       
       {userOrders.length === 0 ? (
-        <div className="text-center py-12">
-          <ShoppingCart size={48} className="mx-auto text-gray-300 mb-4" />
-          <p className="text-gray-500 mb-4">You haven't made any purchases yet.</p>
-          <div className="flex justify-center gap-4">
-            <Link to="/products">
-              <Button variant="default">Browse Products</Button>
-            </Link>
-            <Link to="/services">
-              <Button variant="outline">Browse Services</Button>
-            </Link>
-          </div>
+        <div className="text-center py-10 bg-white rounded-lg shadow-sm">
+          <p className="text-gray-500">You haven't made any purchases yet.</p>
         </div>
       ) : (
-        <div className="space-y-4">
-          {userOrders.map((order) => (
-            <div key={order.id} className="border rounded-lg p-4">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="font-medium">Order #{order.id}</h3>
-                <div className="text-gray-500 text-sm">
-                  {new Date(order.createdAt).toLocaleDateString()}
-                </div>
-              </div>
-              
-              <div className="space-y-2 mb-4">
-                {order.items.map((item) => {
-                  const reviewed = hasReviewed(order.id, item.id);
-                  return (
-                    <div key={item.id} className="flex justify-between items-center bg-gray-50 p-2 rounded">
-                      <div className="flex items-center flex-1">
-                        <img
-                          src={item.image || "https://via.placeholder.com/40"}
-                          alt={item.title}
-                          className="w-10 h-10 object-cover rounded-md mr-2"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.src = "https://via.placeholder.com/40";
-                          }}
-                        />
-                        <div>
-                          <p className="text-sm">{item.title}</p>
-                          <Badge variant="outline">{item.category}</Badge>
-                        </div>
-                      </div>
-                      <div className="text-right mr-4">
-                        <p className="font-medium">₹{item.price.toFixed(2)}</p>
-                        <p className="text-xs text-gray-500">Qty: {item.quantity}</p>
-                      </div>
-                      <Button 
-                        variant={reviewed ? "outline" : "default"} 
-                        size="sm" 
-                        className="flex items-center"
-                        onClick={() => handleReviewClick(item.id, item.title, item.image)}
-                        disabled={reviewed}
-                      >
-                        <Star className="mr-1" size={16} />
-                        {reviewed ? "Reviewed" : "Review"}
-                      </Button>
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Order ID</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead>Items</TableHead>
+                <TableHead>Total</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Action</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {userOrders.map((order) => (
+                <TableRow key={order.id}>
+                  <TableCell className="font-mono text-xs">{order.id.slice(0, 8)}</TableCell>
+                  <TableCell>{new Date(order.createdAt).toLocaleDateString()}</TableCell>
+                  <TableCell>
+                    <ul className="list-disc pl-4 space-y-1">
+                      {order.items.map((item, index) => (
+                        <li key={index}>
+                          {item.title} ({item.category}) x {item.quantity}
+                        </li>
+                      ))}
+                    </ul>
+                  </TableCell>
+                  <TableCell>₹{order.total.toFixed(2)}</TableCell>
+                  <TableCell>
+                    <span className="capitalize px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
+                      {order.status}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <div className="space-y-1">
+                      {order.items.map((item, index) => {
+                        const hasReviewed = hasUserReviewedProduct(item.id, order.id);
+                        
+                        return (
+                          <Button
+                            key={`${item.id}-${index}`}
+                            variant={hasReviewed ? "outline" : "default"}
+                            size="sm"
+                            onClick={() => {
+                              const product = getProductById(item.id);
+                              setReviewModal({
+                                isOpen: true,
+                                productId: item.id,
+                                productTitle: item.title,
+                                productImage: item.image,
+                                sellerId: product?.sellerId || "",
+                                orderId: order.id,
+                                existingReview: hasReviewed
+                              });
+                            }}
+                          >
+                            {hasReviewed ? "Reviewed" : "Review"}
+                          </Button>
+                        );
+                      })}
                     </div>
-                  );
-                })}
-              </div>
-              
-              <div className="flex justify-between border-t pt-3">
-                <span>Total:</span>
-                <span className="font-semibold">₹{order.totalAmount.toFixed(2)}</span>
-              </div>
-            </div>
-          ))}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </div>
       )}
       
-      {reviewItem && (
-        <ReviewModal 
-          isOpen={!!reviewItem}
-          onClose={() => setReviewItem(null)}
-          productId={reviewItem.id}
-          productTitle={reviewItem.title}
-          productImage={reviewItem.image}
-          sellerId={reviewItem.sellerId}
-        />
-      )}
+      <ReviewModal
+        isOpen={reviewModal.isOpen}
+        onClose={() => setReviewModal({ ...reviewModal, isOpen: false })}
+        productId={reviewModal.productId}
+        productTitle={reviewModal.productTitle}
+        productImage={reviewModal.productImage}
+        sellerId={reviewModal.sellerId}
+        orderId={reviewModal.orderId}
+        existingReview={reviewModal.existingReview}
+      />
     </div>
   );
 };

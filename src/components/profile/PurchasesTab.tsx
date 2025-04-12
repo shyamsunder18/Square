@@ -76,7 +76,7 @@ const PurchasesTab: React.FC = () => {
                       ))}
                     </ul>
                   </TableCell>
-                  <TableCell>₹{order.total.toFixed(2)}</TableCell>
+                  <TableCell>₹{order.totalAmount.toFixed(2)}</TableCell>
                   <TableCell>
                     <span className="capitalize px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
                       {order.status}

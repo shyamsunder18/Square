@@ -14,7 +14,7 @@ import {
 import ReviewModal from "./ReviewModal";
 
 const PurchasesTab: React.FC = () => {
-  const { getUserOrders } = useOrders();
+  const { userOrders } = useOrders();
   const { getProductById } = useProducts();
   const [reviewModal, setReviewModal] = useState<{
     isOpen: boolean;
@@ -33,8 +33,6 @@ const PurchasesTab: React.FC = () => {
     orderId: "",
     existingReview: false
   });
-  
-  const userOrders = getUserOrders();
   
   const hasUserReviewedProduct = (productId: string, orderId: string) => {
     const product = getProductById(productId);

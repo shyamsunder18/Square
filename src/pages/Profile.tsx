@@ -19,7 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 const Profile: React.FC = () => {
   const { user } = useAuth();
   const { userProducts, updateProduct, deleteProduct } = useProducts();
-  const { userOrders, userSales } = useOrders();
+  const { userSales } = useOrders();
   const { toast } = useToast();
   
   const [activeTab, setActiveTab] = useState("purchases");
@@ -118,7 +118,7 @@ const Profile: React.FC = () => {
                 </TabsList>
                 
                 <TabsContent value="purchases">
-                  <PurchasesTab userOrders={userOrders} />
+                  <PurchasesTab />
                 </TabsContent>
                 
                 <TabsContent value="listings">

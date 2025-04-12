@@ -26,7 +26,9 @@ router.post('/register', async (req, res) => {
       user: { 
         id: newUser._id, 
         name: newUser.name, 
-        email: newUser.email 
+        email: newUser.email,
+        isAdmin: newUser.isAdmin,
+        balance: newUser.balance
       }, 
       token 
     });
@@ -59,7 +61,9 @@ router.post('/login', async (req, res) => {
       user: { 
         id: user._id, 
         name: user.name, 
-        email: user.email 
+        email: user.email,
+        isAdmin: user.isAdmin,
+        balance: user.balance
       }, 
       token 
     });

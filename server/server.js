@@ -11,6 +11,7 @@ const productRoutes = require('./routes/product.routes');
 const cartRoutes = require('./routes/cart.routes');
 const orderRoutes = require('./routes/order.routes');
 const reviewRoutes = require('./routes/review.routes');
+const rechargeRoutes = require('./routes/recharge.routes');
 
 // Import error handler
 const { errorHandler } = require('./middleware/error.middleware');
@@ -37,6 +38,7 @@ app.use('/api/products', productRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/reviews', reviewRoutes);
+app.use('/api/recharge', rechargeRoutes);
 
 // Root route
 app.get('/', (req, res) => {

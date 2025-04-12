@@ -74,4 +74,19 @@ export const reviewAPI = {
     api.get(`/reviews/product/${productId}`),
 };
 
+// Recharge APIs
+export const rechargeAPI = {
+  getUPIInfo: () => api.get('/recharge/upi-info'),
+  submitRechargeRequest: (data: { amount: number; utrId: string }) => 
+    api.post('/recharge/request', data),
+  getPendingRequests: () => api.get('/recharge/pending'),
+  approveRecharge: (userId: string, rechargeId: string) => 
+    api.post(`/recharge/approve/${userId}/${rechargeId}`),
+  rejectRecharge: (userId: string, rechargeId: string) => 
+    api.post(`/recharge/reject/${userId}/${rechargeId}`),
+  updateUPIInfo: (data: { image: string; upiId: string }) => 
+    api.post('/recharge/update-upi-info', data),
+  getRechargeHistory: () => api.get('/recharge/history'),
+};
+
 export default api;

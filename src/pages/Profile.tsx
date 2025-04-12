@@ -1,10 +1,10 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProducts } from "@/contexts/ProductContext";
 import { useOrders } from "@/contexts/OrderContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ShoppingCart, Package, BadgeDollarSign } from "lucide-react";
+import { ShoppingCart, Package, BadgeDollarSign, Wallet } from "lucide-react";
 import Navbar from "@/components/layout/Navbar";
 
 // Import profile components
@@ -12,12 +12,14 @@ import ProfileHeader from "@/components/profile/ProfileHeader";
 import PurchasesTab from "@/components/profile/PurchasesTab";
 import ListingsTab from "@/components/profile/ListingsTab";
 import SalesTab from "@/components/profile/SalesTab";
+import BalanceHistory from "@/components/profile/BalanceHistory";
 import EditProductDialog from "@/components/profile/EditProductDialog";
 import DeleteProductDialog from "@/components/profile/DeleteProductDialog";
 import { useToast } from "@/hooks/use-toast";
+import { rechargeAPI } from "@/services/api";
 
 const Profile: React.FC = () => {
-  const { user } = useAuth();
+  const { user, balance, updateBalance } = useAuth();
   const { userProducts, updateProduct, deleteProduct } = useProducts();
   const { userSales } = useOrders();
   const { toast } = useToast();
@@ -29,6 +31,22 @@ const Profile: React.FC = () => {
   const [editPrice, setEditPrice] = useState("");
   const [editCount, setEditCount] = useState("");
   const [deleteProductId, setDeleteProductId] = useState<null | string>(null);
+
+  useEffect(() => {
+    // Fetch latest balance when profile loads
+    const fetchBalance = async () => {
+      try {
+        const response = await rechargeAPI.getRechargeHistory();
+        if (response.data && response.data.balance !== undefined) {
+          updateBalance(response.data.balance);
+        }
+      } catch (error) {
+        console.error("Failed to fetch balance:", error);
+      }
+    };
+    
+    fetchBalance();
+  }, [updateBalance]);
 
   const handleEditClick = (productId: string) => {
     const product = userProducts.find(p => p.id === productId);
@@ -102,7 +120,7 @@ const Profile: React.FC = () => {
             {/* Tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <div className="bg-white rounded-lg shadow-sm p-6">
-                <TabsList className="grid grid-cols-3 mb-8">
+                <TabsList className="grid grid-cols-4 mb-8">
                   <TabsTrigger value="purchases" className="flex items-center">
                     <ShoppingCart className="mr-2" size={18} />
                     <span>My Purchases</span>
@@ -114,6 +132,10 @@ const Profile: React.FC = () => {
                   <TabsTrigger value="sales" className="flex items-center">
                     <BadgeDollarSign className="mr-2" size={18} />
                     <span>My Sales</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="balance" className="flex items-center">
+                    <Wallet className="mr-2" size={18} />
+                    <span>My Balance</span>
                   </TabsTrigger>
                 </TabsList>
                 
@@ -131,6 +153,10 @@ const Profile: React.FC = () => {
                 
                 <TabsContent value="sales">
                   <SalesTab userSales={userSales} />
+                </TabsContent>
+
+                <TabsContent value="balance">
+                  <BalanceHistory balance={balance} />
                 </TabsContent>
               </div>
             </Tabs>

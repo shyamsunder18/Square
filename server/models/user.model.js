@@ -19,10 +19,33 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  isAdmin: {
+    type: Boolean,
+    default: false
+  },
+  balance: {
+    type: Number,
+    default: 0
+  },
   createdAt: {
     type: Date,
     default: Date.now
-  }
+  },
+  rechargeHistory: [{
+    amount: Number,
+    pointsAdded: Number,
+    bonusPoints: Number,
+    utrId: String,
+    status: {
+      type: String,
+      enum: ['pending', 'approved', 'rejected'],
+      default: 'pending'
+    },
+    createdAt: {
+      type: Date,
+      default: Date.now
+    }
+  }]
 });
 
 // Hash password before saving

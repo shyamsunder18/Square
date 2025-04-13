@@ -33,6 +33,7 @@ router.post('/register', async (req, res) => {
       token 
     });
   } catch (error) {
+    console.error('Register error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
@@ -68,7 +69,40 @@ router.post('/login', async (req, res) => {
       token 
     });
   } catch (error) {
+    console.error('Login error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Get current user
+router.get('/me', async (req, res) => {
+  try {
+    // Extract token from header
+    const token = req.header('Authorization')?.replace('Bearer ', '');
+    
+    if (!token) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+    
+    // Verify token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.userId);
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    res.json({
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        isAdmin: user.isAdmin,
+        balance: user.balance
+      }
+    });
+  } catch (error) {
+    res.status(401).json({ message: 'Invalid or expired token' });
   }
 });
 

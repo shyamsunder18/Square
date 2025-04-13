@@ -1,3 +1,4 @@
+
 import axios from 'axios';
 
 // Use environment variable for API URL with fallback to localhost for development
@@ -25,12 +26,22 @@ api.interceptors.request.use(
   }
 );
 
+// Add response interceptor for error handling
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    console.error('API Error:', error);
+    return Promise.reject(error);
+  }
+);
+
 // Auth APIs
 export const authAPI = {
   register: (userData: { name: string; email: string; password: string }) => 
     api.post('/auth/register', userData),
   login: (credentials: { email: string; password: string }) => 
     api.post('/auth/login', credentials),
+  getCurrentUser: () => api.get('/auth/me'),
 };
 
 // Product APIs

@@ -35,9 +35,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const storedUser = localStorage.getItem("user");
     
     if (token && storedUser) {
-      const parsedUser = JSON.parse(storedUser);
-      setUser(parsedUser);
-      setBalance(parsedUser.balance || 0);
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        setUser(parsedUser);
+        setBalance(parsedUser.balance || 0);
+        
+        // Verify token validity with the server
+        authAPI.getCurrentUser()
+          .catch((error) => {
+            console.error("Token validation error:", error);
+            // If token is invalid, log out the user
+            logout();
+          });
+      } catch (error) {
+        console.error("Error parsing stored user data:", error);
+        logout();
+      }
     }
   }, []);
 
@@ -56,11 +69,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         title: "Login successful",
         description: "You've been logged in successfully.",
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Login error:", error);
+      
+      let errorMessage = "Unable to login. Please check your network connection.";
+      if (error.response) {
+        // The request was made and the server responded with a status code
+        // that falls out of the range of 2xx
+        errorMessage = error.response.data.message || "Invalid email or password";
+      } else if (error.request) {
+        // The request was made but no response was received
+        errorMessage = "No response from server. Please try again later.";
+      }
+      
       toast({
         title: "Login failed",
-        description: error instanceof Error ? error.message : "Invalid email or password",
+        description: errorMessage,
         variant: "destructive",
       });
       throw error;
@@ -82,11 +106,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         title: "Registration successful",
         description: "Your account has been created successfully.",
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Registration error:", error);
+      
+      let errorMessage = "Unable to register. Please check your network connection.";
+      if (error.response) {
+        // The request was made and the server responded with a status code
+        // that falls out of the range of 2xx
+        errorMessage = error.response.data.message || "Registration failed";
+      } else if (error.request) {
+        // The request was made but no response was received
+        errorMessage = "No response from server. Please try again later.";
+      }
+      
       toast({
         title: "Registration failed",
-        description: error instanceof Error ? error.message : "An unknown error occurred",
+        description: errorMessage,
         variant: "destructive",
       });
       throw error;

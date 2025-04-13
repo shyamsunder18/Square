@@ -16,7 +16,7 @@ const authMiddleware = async (req, res, next) => {
     const user = await User.findById(decoded.userId);
 
     if (!user) {
-      return res.status(401).json({ message: 'Authentication failed' });
+      return res.status(401).json({ message: 'Authentication failed - user not found' });
     }
 
     // Add user to request
@@ -24,6 +24,7 @@ const authMiddleware = async (req, res, next) => {
     req.userId = user._id;
     next();
   } catch (error) {
+    console.error('Auth middleware error:', error);
     res.status(401).json({ message: 'Authentication failed', error: error.message });
   }
 };

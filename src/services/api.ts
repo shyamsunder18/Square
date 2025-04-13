@@ -1,6 +1,6 @@
-
 import axios from 'axios';
 
+// Use environment variable for API URL with fallback to localhost for development
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 // Create axios instance
@@ -43,6 +43,7 @@ export const productAPI = {
   updateProduct: (id: string, updates: any) => api.put(`/products/${id}`, updates),
   deleteProduct: (id: string) => api.delete(`/products/${id}`),
   getSellerProducts: (sellerId: string) => api.get(`/products/seller/${sellerId}`),
+  getRecommendedProducts: () => api.get('/products/recommended'),
 };
 
 // Cart APIs
@@ -87,6 +88,11 @@ export const rechargeAPI = {
   updateUPIInfo: (data: { image: string; upiId: string }) => 
     api.post('/recharge/update-upi-info', data),
   getRechargeHistory: () => api.get('/recharge/history'),
+};
+
+// New recommendation API
+export const recommendationAPI = {
+  getRecommendations: () => api.get('/recommendations'),
 };
 
 export default api;

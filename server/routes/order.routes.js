@@ -2,6 +2,7 @@
 const express = require('express');
 const Order = require('../models/order.model');
 const Cart = require('../models/cart.model');
+const User = require('../models/user.model');
 const authMiddleware = require('../middleware/auth.middleware');
 const router = express.Router();
 
@@ -38,7 +39,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
 // Create a new order
 router.post('/', authMiddleware, async (req, res) => {
   try {
-    const { shippingAddress, paymentMethod } = req.body;
+    const { shippingAddress, paymentMethod, useWalletBalance } = req.body;
     
     // Get user's cart
     const cart = await Cart.findOne({ userId: req.userId });
@@ -52,11 +53,30 @@ router.post('/', authMiddleware, async (req, res) => {
       0
     );
     
+    // Check if using wallet balance
+    let walletAmountUsed = 0;
+    if (useWalletBalance) {
+      // Get user to check balance
+      const user = await User.findById(req.userId);
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+      
+      // Calculate how much of wallet balance to use
+      walletAmountUsed = Math.min(user.balance, totalAmount);
+      
+      // Deduct from user's wallet
+      user.balance -= walletAmountUsed;
+      await user.save();
+    }
+    
     // Create order
     const order = new Order({
       userId: req.userId,
       items: cart.items,
       totalAmount,
+      walletAmountUsed,
+      cardAmountPaid: totalAmount - walletAmountUsed,
       shippingAddress,
       paymentMethod,
       status: 'processing'

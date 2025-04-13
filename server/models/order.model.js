@@ -20,7 +20,8 @@ const orderItemSchema = new mongoose.Schema({
   },
   category: {
     type: String,
-    enum: ['goods', 'services']
+    enum: ['goods', 'services'],
+    required: true
   },
   quantity: {
     type: Number,
@@ -31,10 +32,33 @@ const orderItemSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true
+  }
+});
+
+const addressSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: true
   },
-  reviewed: {
-    type: Boolean,
-    default: false
+  email: {
+    type: String,
+    required: true
+  },
+  address: {
+    type: String,
+    required: true
+  },
+  city: {
+    type: String,
+    required: true
+  },
+  state: {
+    type: String,
+    required: true
+  },
+  zip: {
+    type: String,
+    required: true
   }
 });
 
@@ -49,21 +73,24 @@ const orderSchema = new mongoose.Schema({
     type: Number,
     required: true
   },
-  shippingAddress: {
-    street: String,
-    city: String,
-    state: String,
-    zipCode: String
+  walletAmountUsed: {
+    type: Number,
+    default: 0
   },
+  cardAmountPaid: {
+    type: Number,
+    default: 0
+  },
+  shippingAddress: addressSchema,
   paymentMethod: {
-    cardNumber: String,
-    cardHolderName: String,
-    expiryDate: String
+    type: String,
+    enum: ['card', 'wallet', 'wallet_and_card'],
+    required: true
   },
   status: {
     type: String,
-    enum: ['pending', 'processing', 'completed', 'cancelled'],
-    default: 'pending'
+    enum: ['processing', 'shipped', 'delivered', 'cancelled'],
+    default: 'processing'
   },
   createdAt: {
     type: Date,

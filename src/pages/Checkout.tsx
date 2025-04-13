@@ -1,14 +1,16 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "@/contexts/CartContext";
 import { useOrders } from "@/contexts/OrderContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import Navbar from "@/components/layout/Navbar";
-import { Indian } from "lucide-react";
+import ShippingForm from "@/components/checkout/ShippingForm";
+import PaymentForm from "@/components/checkout/PaymentForm";
+import OrderSummary from "@/components/checkout/OrderSummary";
+import { IndianRupee } from "lucide-react";
 
 const Checkout: React.FC = () => {
   const { cartItems, getTotalPrice, clearCart } = useCart();
@@ -127,155 +129,35 @@ const Checkout: React.FC = () => {
             <div className="md:col-span-2">
               <div className="bg-white rounded-lg shadow-sm p-6">
                 <form onSubmit={handleSubmit} className="space-y-6">
-                  <div>
-                    <h2 className="text-xl font-semibold mb-4">Shipping Information</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="form-group">
-                        <label htmlFor="name" className="block text-gray-700 mb-1">Full Name*</label>
-                        <Input
-                          id="name"
-                          value={name}
-                          onChange={(e) => setName(e.target.value)}
-                          placeholder="John Doe"
-                          required
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label htmlFor="email" className="block text-gray-700 mb-1">Email*</label>
-                        <Input
-                          id="email"
-                          type="email"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          placeholder="john@example.com"
-                          required
-                        />
-                      </div>
-                      <div className="form-group md:col-span-2">
-                        <label htmlFor="address" className="block text-gray-700 mb-1">Address*</label>
-                        <Input
-                          id="address"
-                          value={address}
-                          onChange={(e) => setAddress(e.target.value)}
-                          placeholder="123 Main St"
-                          required
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label htmlFor="city" className="block text-gray-700 mb-1">City*</label>
-                        <Input
-                          id="city"
-                          value={city}
-                          onChange={(e) => setCity(e.target.value)}
-                          placeholder="Mumbai"
-                          required
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label htmlFor="state" className="block text-gray-700 mb-1">State*</label>
-                        <Input
-                          id="state"
-                          value={state}
-                          onChange={(e) => setState(e.target.value)}
-                          placeholder="Maharashtra"
-                          required
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label htmlFor="zip" className="block text-gray-700 mb-1">PIN Code*</label>
-                        <Input
-                          id="zip"
-                          value={zip}
-                          onChange={(e) => setZip(e.target.value)}
-                          placeholder="400001"
-                          required
-                        />
-                      </div>
-                    </div>
-                  </div>
+                  <ShippingForm 
+                    name={name}
+                    setName={setName}
+                    email={email}
+                    setEmail={setEmail}
+                    address={address}
+                    setAddress={setAddress}
+                    city={city}
+                    setCity={setCity}
+                    state={state}
+                    setState={setState}
+                    zip={zip}
+                    setZip={setZip}
+                  />
                   
-                  <div className="border-t pt-6">
-                    <h2 className="text-xl font-semibold mb-2">Payment</h2>
-                    
-                    {balance > 0 && (
-                      <div className="mb-4">
-                        <div className="flex items-center space-x-2 p-3 bg-gray-50 rounded-lg border mb-4">
-                          <Checkbox
-                            id="useWallet"
-                            checked={useWalletBalance}
-                            onCheckedChange={handleWalletToggle}
-                          />
-                          <label htmlFor="useWallet" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                            Use wallet balance (₹{balance.toFixed(2)})
-                          </label>
-                        </div>
-                        
-                        {useWalletBalance && (
-                          <div className="mb-4">
-                            {balance >= totalPrice ? (
-                              <p className="text-green-600">Your wallet balance is sufficient for this purchase!</p>
-                            ) : (
-                              <div>
-                                <p className="text-amber-600 mb-2">
-                                  Your wallet balance will cover ₹{balance.toFixed(2)} of your purchase.
-                                </p>
-                                <p>
-                                  Remaining to be paid: <strong>₹{remainingAmount.toFixed(2)}</strong>
-                                </p>
-                                {needsRecharge && (
-                                  <div className="mt-2">
-                                    <Button 
-                                      type="button"
-                                      variant="outline" 
-                                      onClick={() => navigate('/profile')}
-                                      className="text-primary border-primary hover:bg-primary/10"
-                                    >
-                                      SuperCharge your wallet
-                                    </Button>
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {(!useWalletBalance || remainingAmount > 0) && (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                        <div className="form-group md:col-span-2">
-                          <label htmlFor="cardNumber" className="block text-gray-700 mb-1">Card Number</label>
-                          <Input
-                            id="cardNumber"
-                            value={cardNumber}
-                            onChange={(e) => setCardNumber(e.target.value)}
-                            placeholder="1234 5678 9012 3456"
-                            required={!useWalletBalance || remainingAmount > 0}
-                          />
-                        </div>
-                        <div className="form-group">
-                          <label htmlFor="cardExpiry" className="block text-gray-700 mb-1">Expiration Date</label>
-                          <Input
-                            id="cardExpiry"
-                            value={cardExpiry}
-                            onChange={(e) => setCardExpiry(e.target.value)}
-                            placeholder="MM/YY"
-                            required={!useWalletBalance || remainingAmount > 0}
-                          />
-                        </div>
-                        <div className="form-group">
-                          <label htmlFor="cardCvv" className="block text-gray-700 mb-1">CVV</label>
-                          <Input
-                            id="cardCvv"
-                            value={cardCvv}
-                            onChange={(e) => setCardCvv(e.target.value)}
-                            placeholder="123"
-                            required={!useWalletBalance || remainingAmount > 0}
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                  <PaymentForm 
+                    useWalletBalance={useWalletBalance}
+                    handleWalletToggle={handleWalletToggle}
+                    balance={balance}
+                    totalPrice={totalPrice}
+                    remainingAmount={remainingAmount}
+                    needsRecharge={needsRecharge}
+                    cardNumber={cardNumber}
+                    setCardNumber={setCardNumber}
+                    cardExpiry={cardExpiry}
+                    setCardExpiry={setCardExpiry}
+                    cardCvv={cardCvv}
+                    setCardCvv={setCardCvv}
+                  />
                   
                   <Button 
                     type="submit" 
@@ -289,61 +171,14 @@ const Checkout: React.FC = () => {
             </div>
             
             <div>
-              <div className="bg-white rounded-lg shadow-sm p-6">
-                <h2 className="text-xl font-semibold mb-4">Order Summary</h2>
-                
-                <div className="space-y-3">
-                  {cartItems.map((item) => (
-                    <div key={item.id} className="flex justify-between items-center">
-                      <div className="flex items-center">
-                        <img
-                          src={item.image || "https://via.placeholder.com/40"}
-                          alt={item.title}
-                          className="w-10 h-10 object-cover rounded-md mr-2"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.src = "https://via.placeholder.com/40";
-                          }}
-                        />
-                        <div>
-                          <p className="text-sm">{item.title}</p>
-                          <p className="text-xs text-gray-500">Qty: {item.quantity}</p>
-                        </div>
-                      </div>
-                      <span className="font-medium">₹{(item.price * item.quantity).toFixed(2)}</span>
-                    </div>
-                  ))}
-                </div>
-                
-                <div className="border-t mt-4 pt-4">
-                  <div className="flex justify-between mb-1">
-                    <span>Subtotal</span>
-                    <span>₹{getTotalPrice().toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between mb-1">
-                    <span>Shipping</span>
-                    <span>₹0.00</span>
-                  </div>
-                  
-                  {useWalletBalance && (
-                    <div className="flex justify-between mb-1 text-green-600">
-                      <span>Wallet Credit</span>
-                      <span>-₹{Math.min(balance, totalPrice).toFixed(2)}</span>
-                    </div>
-                  )}
-                  
-                  <div className="flex justify-between font-semibold text-lg mt-2">
-                    <span>Total</span>
-                    <span>₹{remainingAmount.toFixed(2)}</span>
-                  </div>
-                  
-                  {balance > 0 && (
-                    <div className="mt-2 text-sm text-gray-500">
-                      Your wallet balance: ₹{balance.toFixed(2)}
-                    </div>
-                  )}
-                </div>
-              </div>
+              <OrderSummary 
+                cartItems={cartItems}
+                getTotalPrice={getTotalPrice}
+                useWalletBalance={useWalletBalance}
+                balance={balance}
+                totalPrice={totalPrice}
+                remainingAmount={remainingAmount}
+              />
             </div>
           </div>
         </div>

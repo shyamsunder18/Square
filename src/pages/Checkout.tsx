@@ -10,7 +10,6 @@ import Navbar from "@/components/layout/Navbar";
 import ShippingForm from "@/components/checkout/ShippingForm";
 import PaymentForm from "@/components/checkout/PaymentForm";
 import OrderSummary from "@/components/checkout/OrderSummary";
-import { IndianRupee } from "lucide-react";
 
 const Checkout: React.FC = () => {
   const { cartItems, getTotalPrice, clearCart } = useCart();

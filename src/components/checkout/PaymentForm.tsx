@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -46,9 +45,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
             <Checkbox
               id="useWallet"
               checked={useWalletBalance}
-              onCheckedChange={() => {
-                handleWalletToggle();
-              }}
+              onCheckedChange={() => handleWalletToggle()}
             />
             <label htmlFor="useWallet" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
               Use wallet balance (₹{balance.toFixed(2)})

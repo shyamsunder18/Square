@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Loader2 } from "lucide-react";
 
 const Register: React.FC = () => {
   const [name, setName] = useState("");
@@ -62,7 +62,7 @@ const Register: React.FC = () => {
       if (error?.response?.data?.message) {
         setError(error.response.data.message);
       } else if (error?.request) {
-        setError("Server is not responding. Please try again later.");
+        setError("Server is not responding. Please ensure the backend server is running.");
       } else {
         setError("Network error. Please check your connection and try again.");
       }
@@ -141,7 +141,12 @@ const Register: React.FC = () => {
             disabled={isLoading} 
             className="w-full"
           >
-            {isLoading ? "Creating account..." : "Sign up"}
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Creating account...
+              </>
+            ) : "Sign up"}
           </Button>
         </form>
         

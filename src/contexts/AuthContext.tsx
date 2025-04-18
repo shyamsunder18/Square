@@ -113,7 +113,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (error.response) {
         errorMessage = error.response.data.message || "Registration failed";
       } else if (error.request) {
-        errorMessage = "Server is not responding. Please try again later.";
+        errorMessage = "Server is not responding. Please ensure your backend server is running.";
       } else {
         errorMessage = "Network error. Please check your connection.";
       }

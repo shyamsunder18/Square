@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { CartItem } from "@/contexts/CartContext";
 import { useNotifications } from "@/contexts/NotificationContext";
 import { useProducts } from "@/contexts/ProductContext";
-import { Order } from "@/types/order.types";
+import { Order, UserSale } from "@/types/order.types";
 import { orderAPI } from "@/services/api";
 
 export const useOrderActions = () => {
@@ -30,7 +30,16 @@ export const useOrderActions = () => {
     setIsLoading(true);
     try {
       const response = await orderAPI.getOrders();
-      setOrders(response.data || []);
+      // Transform the API response to match our Order type
+      const formattedOrders = response.data.map((order: any) => ({
+        id: order._id || order.id,
+        items: order.items,
+        buyerId: order.userId,
+        totalAmount: order.totalAmount,
+        status: order.status,
+        createdAt: order.createdAt
+      }));
+      setOrders(formattedOrders || []);
     } catch (error) {
       console.error("Failed to fetch orders:", error);
       toast({
@@ -47,12 +56,23 @@ export const useOrderActions = () => {
   const getUserOrders = (): Order[] => orders;
 
   // Get sales for the current user (seller)
-  const getUserSales = async () => {
+  const getUserSales = async (): Promise<UserSale[]> => {
     if (!user) return [];
     
     try {
       const response = await orderAPI.getSales();
-      return response.data || [];
+      // Transform the API response to match our UserSale type
+      return (response.data || []).map((sale: any) => ({
+        order: {
+          id: sale.orderId,
+          items: sale.items,
+          buyerId: sale.userId || "unknown",
+          totalAmount: sale.items.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0),
+          status: sale.status,
+          createdAt: sale.orderDate
+        },
+        items: sale.items
+      }));
     } catch (error) {
       console.error("Failed to fetch sales:", error);
       toast({
@@ -104,10 +124,20 @@ export const useOrderActions = () => {
   };
 
   // Get order by ID
-  const getOrderById = async (id: string) => {
+  const getOrderById = async (id: string): Promise<Order | null> => {
     try {
       const response = await orderAPI.getOrderById(id);
-      return response.data;
+      if (!response.data) return null;
+      
+      // Transform the API response to match our Order type
+      return {
+        id: response.data._id || response.data.id,
+        items: response.data.items,
+        buyerId: response.data.userId,
+        totalAmount: response.data.totalAmount,
+        status: response.data.status,
+        createdAt: response.data.createdAt
+      };
     } catch (error) {
       console.error("Failed to fetch order:", error);
       return null;
@@ -117,7 +147,7 @@ export const useOrderActions = () => {
   return {
     orders,
     userOrders: orders,
-    userSales: [],  // This will be fetched when needed using getUserSales()
+    userSales: [], // This will be fetched when needed using getUserSales()
     createOrder,
     getOrderById,
     isLoading,

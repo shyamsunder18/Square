@@ -1,7 +1,7 @@
 
 import { CartItem } from "@/contexts/CartContext";
 
-export type OrderStatus = "pending" | "completed" | "cancelled";
+export type OrderStatus = "pending" | "completed" | "cancelled" | "processing" | "shipped" | "delivered";
 
 export type Order = {
   id: string;
@@ -21,6 +21,6 @@ export type OrderContextType = {
   orders: Order[];
   userOrders: Order[];
   userSales: UserSale[];
-  createOrder: () => Promise<string | null>;
-  getOrderById: (id: string) => Order | undefined;
+  createOrder: (orderData: any) => Promise<string | null>;
+  getOrderById: (id: string) => Promise<Order | null>;
 };

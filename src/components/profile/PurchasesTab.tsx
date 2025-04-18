@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useOrders } from "@/contexts/OrderContext";
 import { useProducts } from "@/contexts/ProductContext";
 import { Button } from "@/components/ui/button";
@@ -92,7 +92,7 @@ const PurchasesTab: React.FC = () => {
                             key={`${item.id}-${index}`}
                             variant={hasReviewed ? "outline" : "default"}
                             size="sm"
-                            onClick={() => {
+                            onClick={async () => {
                               const product = getProductById(item.id);
                               setReviewModal({
                                 isOpen: true,

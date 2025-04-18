@@ -1,8 +1,8 @@
 
 import axios from 'axios';
 
-// Use environment variable for API URL with fallback to a deployed URL
-const API_URL = import.meta.env.VITE_API_URL || 'https://square-production.up.railway.app/api';
+// Use environment variable for API URL with fallback
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3300';
 
 // Create axios instance
 const api = axios.create({
@@ -41,7 +41,7 @@ export const authAPI = {
     api.post('/api/auth/register', userData),
   login: (credentials: { email: string; password: string }) => 
     api.post('/api/auth/login', credentials),
-  getCurrentUser: () => api.get('/auth/me'),
+  getCurrentUser: () => api.get('/api/auth/me'),
 };
 
 // Product APIs

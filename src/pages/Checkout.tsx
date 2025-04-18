@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "@/contexts/CartContext";
@@ -9,11 +10,11 @@ import Navbar from "@/components/layout/Navbar";
 import ShippingForm from "@/components/checkout/ShippingForm";
 import PaymentForm from "@/components/checkout/PaymentForm";
 import OrderSummary from "@/components/checkout/OrderSummary";
+import { orderAPI } from "@/services/api";
 
 const Checkout: React.FC = () => {
   const { cartItems, getTotalPrice, clearCart } = useCart();
-  const { createOrder } = useOrders();
-  const { user, balance } = useAuth();
+  const { user, balance, refreshUserData } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   
@@ -27,7 +28,7 @@ const Checkout: React.FC = () => {
   const [cardExpiry, setCardExpiry] = useState("");
   const [cardCvv, setCardCvv] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
-  const [useWallet, setUseWallet] = useState(false);
+  const [useWalletBalance, setUseWalletBalance] = useState(false);
   const [remainingAmount, setRemainingAmount] = useState(getTotalPrice());
   
   const totalPrice = getTotalPrice();
@@ -44,22 +45,21 @@ const Checkout: React.FC = () => {
   }, [cartItems, navigate, user]);
 
   useEffect(() => {
-    if (useWallet) {
+    if (useWalletBalance) {
       const newRemaining = Math.max(0, totalPrice - balance);
       setRemainingAmount(newRemaining);
     } else {
       setRemainingAmount(totalPrice);
     }
-  }, [useWallet, balance, totalPrice]);
+  }, [useWalletBalance, balance, totalPrice]);
 
   const handleWalletToggle = () => {
-    setUseWallet(!useWallet);
+    setUseWalletBalance(!useWalletBalance);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Basic validation for required fields
     if (!name || !email || !address || !city || !state || !zip) {
       toast({
         title: "Missing information",
@@ -69,7 +69,6 @@ const Checkout: React.FC = () => {
       return;
     }
     
-    // If using card payment and remaining amount > 0, validate card details
     if (remainingAmount > 0 && (!cardNumber || !cardExpiry || !cardCvv)) {
       toast({
         title: "Missing payment information",
@@ -79,34 +78,49 @@ const Checkout: React.FC = () => {
       return;
     }
     
-    // If insufficient balance and trying to use wallet
-    if (useWallet && balance < totalPrice && remainingAmount > 0) {
-      // Proceed with partial wallet payment
+    // Check if user has enough balance when trying to use wallet
+    if (useWalletBalance && balance < totalPrice && remainingAmount > 0) {
+      if (balance <= 0) {
+        toast({
+          title: "Insufficient balance",
+          description: "Your wallet has no funds. Please add balance or use card payment.",
+          variant: "destructive",
+        });
+        return;
+      }
     }
     
     setIsProcessing(true);
     
     try {
-      const paymentMethod = useWallet ? 
+      const paymentMethod = useWalletBalance ? 
         (remainingAmount > 0 ? "wallet_and_card" : "wallet") : "card";
       
-      const orderId = await createOrder({
+      const response = await orderAPI.createOrder({
         shippingAddress: { name, email, address, city, state, zip },
         paymentMethod,
-        useWallet
+        useWalletBalance
       });
       
-      if (orderId) {
-        // Order created successfully
+      if (response.data) {
+        // Update user balance after successful order
+        await refreshUserData();
         clearCart();
-        navigate(`/order-success/${orderId}`);
+        navigate(`/order-success/${response.data._id}`);
       } else {
         throw new Error("Failed to create order.");
       }
-    } catch (error) {
+    } catch (error: any) {
+      let errorMessage = "An error occurred during checkout.";
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: "Checkout failed",
-        description: error instanceof Error ? error.message : "An error occurred during checkout.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -114,7 +128,7 @@ const Checkout: React.FC = () => {
     }
   };
 
-  const needsRecharge = useWallet && balance < totalPrice;
+  const needsRecharge = useWalletBalance && balance < totalPrice;
 
   return (
     <>
@@ -143,7 +157,7 @@ const Checkout: React.FC = () => {
                   />
                   
                   <PaymentForm 
-                    useWallet={useWallet}
+                    useWalletBalance={useWalletBalance}
                     handleWalletToggle={handleWalletToggle}
                     balance={balance}
                     totalPrice={totalPrice}
@@ -172,7 +186,7 @@ const Checkout: React.FC = () => {
               <OrderSummary 
                 cartItems={cartItems}
                 getTotalPrice={getTotalPrice}
-                useWalletBalance={useWallet}
+                useWalletBalance={useWalletBalance}
                 balance={balance}
                 totalPrice={totalPrice}
                 remainingAmount={remainingAmount}

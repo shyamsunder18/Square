@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useContext, useEffect, ReactNode } from "react";
 import { useToast } from "@/hooks/use-toast";
 import api, { authAPI } from "@/services/api";
@@ -19,6 +20,7 @@ type AuthContextType = {
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
   updateBalance: (newBalance: number) => void;
+  refreshUserData: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -26,31 +28,33 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [balance, setBalance] = useState<number>(0);
+  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  useEffect(() => {
-    // Check if user is already logged in
-    const token = localStorage.getItem("token");
-    const storedUser = localStorage.getItem("user");
-    
-    if (token && storedUser) {
-      try {
-        const parsedUser = JSON.parse(storedUser);
-        setUser(parsedUser);
-        setBalance(parsedUser.balance || 0);
-        
-        // Verify token validity with the server
-        authAPI.getCurrentUser()
-          .catch((error) => {
-            console.error("Token validation error:", error);
-            // If token is invalid, log out the user
-            logout();
-          });
-      } catch (error) {
-        console.error("Error parsing stored user data:", error);
-        logout();
+  const refreshUserData = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setLoading(false);
+        return;
       }
+
+      const { data } = await authAPI.getCurrentUser();
+      if (data && data.user) {
+        setUser(data.user);
+        setBalance(data.user.balance || 0);
+      }
+    } catch (error) {
+      console.error("Failed to refresh user data:", error);
+      // Invalid or expired token
+      logout();
+    } finally {
+      setLoading(false);
     }
+  };
+
+  useEffect(() => {
+    refreshUserData();
   }, []);
 
   const login = async (email: string, password: string) => {
@@ -59,7 +63,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const userData = response.data;
       
       localStorage.setItem("token", userData.token);
-      localStorage.setItem("user", JSON.stringify(userData.user));
       
       setUser(userData.user);
       setBalance(userData.user.balance || 0);
@@ -95,7 +98,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const userData = response.data;
       
       localStorage.setItem("token", userData.token);
-      localStorage.setItem("user", JSON.stringify(userData.user));
       
       setUser(userData.user);
       setBalance(userData.user.balance || 0);
@@ -129,7 +131,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setUser(null);
     setBalance(0);
     localStorage.removeItem("token");
-    localStorage.removeItem("user");
     
     toast({
       title: "Logged out",
@@ -142,7 +143,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const updatedUser = { ...user, balance: newBalance };
       setUser(updatedUser);
       setBalance(newBalance);
-      localStorage.setItem("user", JSON.stringify(updatedUser));
     }
   };
 
@@ -157,9 +157,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         register,
         logout,
         updateBalance,
+        refreshUserData,
       }}
     >
-      {children}
+      {!loading && children}
     </AuthContext.Provider>
   );
 };

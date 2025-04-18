@@ -2,60 +2,70 @@
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { CartItem, useCart } from "@/contexts/CartContext";
+import { CartItem } from "@/contexts/CartContext";
 import { useNotifications } from "@/contexts/NotificationContext";
 import { useProducts } from "@/contexts/ProductContext";
 import { Order } from "@/types/order.types";
+import { orderAPI } from "@/services/api";
 
 export const useOrderActions = () => {
   const [orders, setOrders] = useState<Order[]>([]);
-  const { user } = useAuth();
-  const { cartItems, clearCart } = useCart();
+  const [isLoading, setIsLoading] = useState(false);
+  const { user, refreshUserData } = useAuth();
   const { toast } = useToast();
   const { addNotification } = useNotifications();
-  const { products, updateProduct } = useProducts();
 
+  // Fetch user orders when user changes
   useEffect(() => {
-    // Load orders from localStorage
-    const storedOrders = localStorage.getItem("orders");
-    if (storedOrders) {
-      setOrders(JSON.parse(storedOrders));
+    if (user) {
+      fetchOrders();
+    } else {
+      setOrders([]);
     }
-  }, []);
+  }, [user]);
 
-  useEffect(() => {
-    // Update localStorage when orders change
-    localStorage.setItem("orders", JSON.stringify(orders));
-  }, [orders]);
-
-  // Get orders for the current user
-  const getUserOrders = (): Order[] => {
-    return user ? orders.filter((order) => order.buyerId === user.id) : [];
+  const fetchOrders = async () => {
+    if (!user) return;
+    
+    setIsLoading(true);
+    try {
+      const response = await orderAPI.getOrders();
+      setOrders(response.data || []);
+    } catch (error) {
+      console.error("Failed to fetch orders:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch your orders.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  // Get orders for the current user - already fetched from API
+  const getUserOrders = (): Order[] => orders;
 
   // Get sales for the current user (seller)
-  const getUserSales = () => {
+  const getUserSales = async () => {
     if (!user) return [];
     
-    return orders.reduce((sales, order) => {
-      const sellerItems = order.items.filter((item) => {
-        const product = products.find((p) => p.id === item.id);
-        return product && product.sellerId === user.id;
+    try {
+      const response = await orderAPI.getSales();
+      return response.data || [];
+    } catch (error) {
+      console.error("Failed to fetch sales:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch your sales data.",
+        variant: "destructive",
       });
-      
-      if (sellerItems.length > 0) {
-        sales.push({
-          order,
-          items: sellerItems,
-        });
-      }
-      
-      return sales;
-    }, [] as { order: Order; items: CartItem[] }[]);
+      return [];
+    }
   };
 
-  // Create a new order
-  const createOrder = async (): Promise<string | null> => {
+  // Create a new order using the API
+  const createOrder = async (orderData: any): Promise<string | null> => {
     if (!user) {
       toast({
         title: "Authentication required",
@@ -65,92 +75,28 @@ export const useOrderActions = () => {
       return null;
     }
 
-    if (cartItems.length === 0) {
-      toast({
-        title: "Empty cart",
-        description: "Your cart is empty.",
-        variant: "destructive",
-      });
-      return null;
-    }
-
-    // Check if product quantities are available
-    for (const item of cartItems) {
-      if (item.category === "goods") {
-        const product = products.find((p) => p.id === item.id);
-        if (product && product.count !== undefined) {
-          if (product.count < item.quantity) {
-            toast({
-              title: "Insufficient stock",
-              description: `Only ${product.count} units of "${product.title}" are available.`,
-              variant: "destructive",
-            });
-            return null;
-          }
-        }
-      }
-    }
-
     try {
-      // Create new order
-      const newOrder: Order = {
-        id: Date.now().toString(),
-        items: [...cartItems],
-        buyerId: user.id,
-        totalAmount: cartItems.reduce((total, item) => total + item.price * item.quantity, 0),
-        status: "completed",
-        createdAt: new Date().toISOString(),
-      };
-
-      setOrders((prev) => [...prev, newOrder]);
-
-      // Update product quantities
-      cartItems.forEach((item) => {
-        if (item.category === "goods") {
-          const product = products.find((p) => p.id === item.id);
-          if (product && product.count !== undefined) {
-            updateProduct(product.id, {
-              count: product.count - item.quantity,
-            });
-          }
-        }
-      });
-
-      // Send notifications to sellers
-      const sellerIds = new Set(
-        cartItems.map((item) => {
-          const product = products.find((p) => p.id === item.id);
-          return product ? product.sellerId : null;
-        }).filter(Boolean)
-      );
-
-      sellerIds.forEach((sellerId) => {
-        if (sellerId) {
-          addNotification({
-            title: "New Order!",
-            message: `Someone has purchased your ${cartItems.length > 1 ? 'items' : 'item'}.`,
-            type: "order",
-            item: {
-              id: newOrder.id,
-              title: "Order",
-            },
-          });
-        }
-      });
-
-      // Clear the cart
-      clearCart();
-
+      const response = await orderAPI.createOrder(orderData);
+      
+      // Refresh orders list and user data (for updated balance)
+      fetchOrders();
+      await refreshUserData();
+      
       toast({
         title: "Order placed successfully",
         description: "Thank you for your purchase!",
       });
-
-      return newOrder.id;
-    } catch (error) {
+      
+      return response.data._id || response.data.id;
+    } catch (error: any) {
+      let errorMessage = "An error occurred while processing your order.";
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+      
       toast({
         title: "Failed to place order",
-        description: "An error occurred while processing your order.",
+        description: errorMessage,
         variant: "destructive",
       });
       return null;
@@ -158,16 +104,24 @@ export const useOrderActions = () => {
   };
 
   // Get order by ID
-  const getOrderById = (id: string) => {
-    return orders.find((order) => order.id === id);
+  const getOrderById = async (id: string) => {
+    try {
+      const response = await orderAPI.getOrderById(id);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch order:", error);
+      return null;
+    }
   };
 
   return {
     orders,
-    userOrders: getUserOrders(),
-    userSales: getUserSales(),
+    userOrders: orders,
+    userSales: [],  // This will be fetched when needed using getUserSales()
     createOrder,
     getOrderById,
-    setOrders,
+    isLoading,
+    fetchOrders,
+    getUserSales,
   };
 };

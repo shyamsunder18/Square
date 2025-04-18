@@ -38,72 +38,72 @@ api.interceptors.response.use(
 // Auth APIs
 export const authAPI = {
   register: (userData: { name: string; email: string; password: string }) => 
-    api.post('/auth/register', userData),
+    api.post('/api/auth/register', userData),
   login: (credentials: { email: string; password: string }) => 
-    api.post('/auth/login', credentials),
+    api.post('/api/auth/login', credentials),
   getCurrentUser: () => api.get('/auth/me'),
 };
 
 // Product APIs
 export const productAPI = {
-  getAllProducts: () => api.get('/products'),
+  getAllProducts: () => api.get('/api/products'),
   getProductsByCategory: (category: 'goods' | 'services') => 
-    api.get(`/products?category=${category}`),
-  getProductById: (id: string) => api.get(`/products/${id}`),
-  addProduct: (productData: any) => api.post('/products', productData),
-  updateProduct: (id: string, updates: any) => api.put(`/products/${id}`, updates),
-  deleteProduct: (id: string) => api.delete(`/products/${id}`),
-  getSellerProducts: (sellerId: string) => api.get(`/products/seller/${sellerId}`),
-  getRecommendedProducts: () => api.get('/products/recommended'),
+    api.get(`/api/products?category=${category}`),
+  getProductById: (id: string) => api.get(`/api/products/${id}`),
+  addProduct: (productData: any) => api.post('/api/products', productData),
+  updateProduct: (id: string, updates: any) => api.put(`/api/products/${id}`, updates),
+  deleteProduct: (id: string) => api.delete(`/api/products/${id}`),
+  getSellerProducts: (sellerId: string) => api.get(`/api/products/seller/${sellerId}`),
+  getRecommendedProducts: () => api.get('/api/products/recommended'),
 };
 
 // Cart APIs
 export const cartAPI = {
-  getCart: () => api.get('/cart'),
+  getCart: () => api.get('/api/cart'),
   addToCart: (item: { productId: string; quantity?: number }) => 
-    api.post('/cart/add', item),
+    api.post('/api/cart/add', item),
   updateCartItem: (itemId: string, quantity: number) => 
-    api.put(`/cart/update/${itemId}`, { quantity }),
-  removeCartItem: (itemId: string) => api.delete(`/cart/remove/${itemId}`),
-  clearCart: () => api.delete('/cart/clear'),
+    api.put(`/api/cart/update/${itemId}`, { quantity }),
+  removeCartItem: (itemId: string) => api.delete(`/api/cart/remove/${itemId}`),
+  clearCart: () => api.delete('/api/cart/clear'),
 };
 
 // Order APIs
 export const orderAPI = {
-  getOrders: () => api.get('/orders'),
-  getOrderById: (id: string) => api.get(`/orders/${id}`),
-  createOrder: (orderData: any) => api.post('/orders', orderData),
-  getSales: () => api.get('/orders/sales/seller'),
+  getOrders: () => api.get('/api/orders'),
+  getOrderById: (id: string) => api.get(`/api/orders/${id}`),
+  createOrder: (orderData: any) => api.post('/api/orders', orderData),
+  getSales: () => api.get('/api/orders/sales/seller'),
   updateOrderStatus: (id: string, status: string) => 
-    api.put(`/orders/${id}/status`, { status }),
+    api.put(`/api/orders/${id}/status`, { status }),
 };
 
 // Review APIs
 export const reviewAPI = {
   addReview: (productId: string, reviewData: any) => 
-    api.post(`/reviews/${productId}`, reviewData),
+    api.post(`/api/reviews/${productId}`, reviewData),
   getProductReviews: (productId: string) => 
-    api.get(`/reviews/product/${productId}`),
+    api.get(`/api/reviews/product/${productId}`),
 };
 
 // Recharge APIs
 export const rechargeAPI = {
-  getUPIInfo: () => api.get('/recharge/upi-info'),
+  getUPIInfo: () => api.get('/api/recharge/upi-info'),
   submitRechargeRequest: (data: { amount: number; utrId: string }) => 
-    api.post('/recharge/request', data),
-  getPendingRequests: () => api.get('/recharge/pending'),
+    api.post('/api/recharge/request', data),
+  getPendingRequests: () => api.get('/api/recharge/pending'),
   approveRecharge: (userId: string, rechargeId: string) => 
-    api.post(`/recharge/approve/${userId}/${rechargeId}`),
+    api.post(`/api/recharge/approve/${userId}/${rechargeId}`),
   rejectRecharge: (userId: string, rechargeId: string) => 
-    api.post(`/recharge/reject/${userId}/${rechargeId}`),
+    api.post(`/api/recharge/reject/${userId}/${rechargeId}`),
   updateUPIInfo: (data: { image: string; upiId: string }) => 
-    api.post('/recharge/update-upi-info', data),
-  getRechargeHistory: () => api.get('/recharge/history'),
+    api.post('/api/recharge/update-upi-info', data),
+  getRechargeHistory: () => api.get('/api/recharge/history'),
 };
 
 // New recommendation API
 export const recommendationAPI = {
-  getRecommendations: () => api.get('/recommendations'),
+  getRecommendations: () => api.get('/api/recommendations'),
 };
 
 export default api;

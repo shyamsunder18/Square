@@ -43,7 +43,7 @@ router.post('/', authMiddleware, async (req, res) => {
       title,
       description,
       price,
-      image,
+      
       category,
       sellerId: req.userId,
     });

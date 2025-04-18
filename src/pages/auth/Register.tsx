@@ -42,13 +42,30 @@ const Register: React.FC = () => {
       return;
     }
     
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters long.");
+      toast({
+        title: "Password too short",
+        description: "Password must be at least 6 characters long.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     try {
       setIsLoading(true);
       await register(name, email, password);
       navigate("/");
     } catch (error: any) {
       console.error(error);
-      setError(error?.response?.data?.message || "Network error. Please try again.");
+      
+      if (error?.response?.data?.message) {
+        setError(error.response.data.message);
+      } else if (error?.request) {
+        setError("Server is not responding. Please try again later.");
+      } else {
+        setError("Network error. Please check your connection and try again.");
+      }
     } finally {
       setIsLoading(false);
     }

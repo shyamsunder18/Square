@@ -36,7 +36,14 @@ const Login: React.FC = () => {
       navigate("/");
     } catch (error: any) {
       console.error(error);
-      setError(error?.response?.data?.message || "Network error. Please try again.");
+      
+      if (error?.response?.data?.message) {
+        setError(error.response.data.message);
+      } else if (error?.request) {
+        setError("Server is not responding. Please try again later.");
+      } else {
+        setError("Network error. Please check your connection and try again.");
+      }
     } finally {
       setIsLoading(false);
     }

@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useContext, useEffect, ReactNode } from "react";
 import { useToast } from "@/hooks/use-toast";
 import api, { authAPI } from "@/services/api";
@@ -74,12 +73,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       
       let errorMessage = "Unable to login. Please check your network connection.";
       if (error.response) {
-        // The request was made and the server responded with a status code
-        // that falls out of the range of 2xx
         errorMessage = error.response.data.message || "Invalid email or password";
       } else if (error.request) {
-        // The request was made but no response was received
-        errorMessage = "No response from server. Please try again later.";
+        errorMessage = "Server is not responding. Please try again later.";
+      } else {
+        errorMessage = "Network error. Please check your connection.";
       }
       
       toast({
@@ -111,12 +109,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       
       let errorMessage = "Unable to register. Please check your network connection.";
       if (error.response) {
-        // The request was made and the server responded with a status code
-        // that falls out of the range of 2xx
         errorMessage = error.response.data.message || "Registration failed";
       } else if (error.request) {
-        // The request was made but no response was received
-        errorMessage = "No response from server. Please try again later.";
+        errorMessage = "Server is not responding. Please try again later.";
+      } else {
+        errorMessage = "Network error. Please check your connection.";
       }
       
       toast({

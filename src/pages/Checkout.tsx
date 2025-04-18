@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "@/contexts/CartContext";
@@ -28,7 +27,7 @@ const Checkout: React.FC = () => {
   const [cardExpiry, setCardExpiry] = useState("");
   const [cardCvv, setCardCvv] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
-  const [useWalletBalance, setUseWalletBalance] = useState(false);
+  const [useWallet, setUseWallet] = useState(false);
   const [remainingAmount, setRemainingAmount] = useState(getTotalPrice());
   
   const totalPrice = getTotalPrice();
@@ -45,16 +44,16 @@ const Checkout: React.FC = () => {
   }, [cartItems, navigate, user]);
 
   useEffect(() => {
-    if (useWalletBalance) {
+    if (useWallet) {
       const newRemaining = Math.max(0, totalPrice - balance);
       setRemainingAmount(newRemaining);
     } else {
       setRemainingAmount(totalPrice);
     }
-  }, [useWalletBalance, balance, totalPrice]);
+  }, [useWallet, balance, totalPrice]);
 
   const handleWalletToggle = () => {
-    setUseWalletBalance(!useWalletBalance);
+    setUseWallet(!useWallet);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -81,20 +80,20 @@ const Checkout: React.FC = () => {
     }
     
     // If insufficient balance and trying to use wallet
-    if (useWalletBalance && balance < totalPrice && remainingAmount > 0) {
+    if (useWallet && balance < totalPrice && remainingAmount > 0) {
       // Proceed with partial wallet payment
     }
     
     setIsProcessing(true);
     
     try {
-      const paymentMethod = useWalletBalance ? 
+      const paymentMethod = useWallet ? 
         (remainingAmount > 0 ? "wallet_and_card" : "wallet") : "card";
       
       const orderId = await createOrder({
         shippingAddress: { name, email, address, city, state, zip },
         paymentMethod,
-        useWalletBalance
+        useWallet
       });
       
       if (orderId) {
@@ -115,7 +114,7 @@ const Checkout: React.FC = () => {
     }
   };
 
-  const needsRecharge = useWalletBalance && balance < totalPrice;
+  const needsRecharge = useWallet && balance < totalPrice;
 
   return (
     <>
@@ -144,7 +143,7 @@ const Checkout: React.FC = () => {
                   />
                   
                   <PaymentForm 
-                    useWalletBalance={useWalletBalance}
+                    useWallet={useWallet}
                     handleWalletToggle={handleWalletToggle}
                     balance={balance}
                     totalPrice={totalPrice}
@@ -173,7 +172,7 @@ const Checkout: React.FC = () => {
               <OrderSummary 
                 cartItems={cartItems}
                 getTotalPrice={getTotalPrice}
-                useWalletBalance={useWalletBalance}
+                useWalletBalance={useWallet}
                 balance={balance}
                 totalPrice={totalPrice}
                 remainingAmount={remainingAmount}

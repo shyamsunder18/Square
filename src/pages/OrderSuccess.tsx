@@ -1,16 +1,36 @@
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useParams } from "react-router-dom";
 import { CheckCircle, ShoppingBag, Home } from "lucide-react";
 import { useOrders } from "@/contexts/OrderContext";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/layout/Navbar";
+import { Order } from "@/types/order.types";
 
 const OrderSuccess: React.FC = () => {
   const { orderId } = useParams<{ orderId: string }>();
   const { getOrderById } = useOrders();
+  const [order, setOrder] = useState<Order | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
   
-  const order = orderId ? getOrderById(orderId) : undefined;
+  useEffect(() => {
+    const fetchOrderDetails = async () => {
+      if (orderId) {
+        try {
+          const fetchedOrder = await getOrderById(orderId);
+          setOrder(fetchedOrder);
+        } catch (error) {
+          console.error("Failed to fetch order:", error);
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        setLoading(false);
+      }
+    };
+    
+    fetchOrderDetails();
+  }, [orderId, getOrderById]);
   
   return (
     <>
@@ -27,7 +47,11 @@ const OrderSuccess: React.FC = () => {
               Thank you for your purchase. Your order has been placed successfully.
             </p>
             
-            {order && (
+            {loading ? (
+              <div className="flex justify-center py-6">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+              </div>
+            ) : order ? (
               <div className="mb-8">
                 <div className="bg-gray-50 rounded-lg p-4 mb-4">
                   <p className="text-sm text-gray-500">Order ID</p>
@@ -38,6 +62,10 @@ const OrderSuccess: React.FC = () => {
                   <p className="text-sm text-gray-500">Order Total</p>
                   <p className="font-medium">${order.totalAmount.toFixed(2)}</p>
                 </div>
+              </div>
+            ) : (
+              <div className="mb-8">
+                <p className="text-amber-600">Order details not found. Please check your order history.</p>
               </div>
             )}
             

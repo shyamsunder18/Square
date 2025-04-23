@@ -1,11 +1,16 @@
 
 import axios from 'axios';
 
-// Use environment variable for API URL with fallback to relative URL
-// This ensures it works both in development and production environments
-const API_URL = import.meta.env.VITE_API_URL || '';
+// Determine the API URL based on environment
+// In production (like Vercel), we use relative URLs
+// In development, we use the environment variable with a fallback to localhost
+const isDevelopment = import.meta.env.DEV;
+const API_URL = isDevelopment 
+  ? (import.meta.env.VITE_API_URL || 'http://localhost:3300') 
+  : '/api';
 
-// Create axios instance with base URL that will work in all environments
+console.log('Using API URL:', API_URL); // This will help debug the connection issue
+
 const api = axios.create({
   baseURL: API_URL,
   headers: {
@@ -27,11 +32,29 @@ api.interceptors.request.use(
   }
 );
 
-// Add response interceptor for error handling
+// Add response interceptor for error handling with more detailed logging
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    console.error('API Error:', error);
+    if (error.response) {
+      // The request was made and the server responded with a status code
+      // that falls out of the range of 2xx
+      console.error('API Error Response:', {
+        status: error.response.status,
+        data: error.response.data,
+        headers: error.response.headers
+      });
+    } else if (error.request) {
+      // The request was made but no response was received
+      console.error('API Error Request - No Response:', {
+        request: error.request,
+        url: error.config?.url,
+        baseURL: API_URL
+      });
+    } else {
+      // Something happened in setting up the request that triggered an Error
+      console.error('API Error Setup:', error.message);
+    }
     return Promise.reject(error);
   }
 );

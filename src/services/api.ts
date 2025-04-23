@@ -1,15 +1,9 @@
-
 import axios from 'axios';
 
-// Determine the API URL based on environment
-// In production (like Vercel), we use relative URLs
-// In development, we use the environment variable with a fallback to localhost
-const isDevelopment = import.meta.env.DEV;
-const API_URL = isDevelopment 
-  ? (import.meta.env.VITE_API_URL || 'http://localhost:3300') 
-  : '/api';
+// In both development and production, we'll use relative URLs
+const API_URL = '/api';
 
-console.log('Using API URL:', API_URL); // This will help debug the connection issue
+console.log('Using API URL:', API_URL);
 
 const api = axios.create({
   baseURL: API_URL,

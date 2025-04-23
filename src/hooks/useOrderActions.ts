@@ -2,25 +2,24 @@
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { CartItem } from "@/contexts/CartContext";
-import { useNotifications } from "@/contexts/NotificationContext";
-import { useProducts } from "@/contexts/ProductContext";
-import { Order, UserSale } from "@/types/order.types";
 import { orderAPI } from "@/services/api";
+import { Order, UserSale } from "@/types/order.types";
 
 export const useOrderActions = () => {
   const [orders, setOrders] = useState<Order[]>([]);
+  const [userSales, setUserSales] = useState<UserSale[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const { user, refreshUserData } = useAuth();
   const { toast } = useToast();
-  const { addNotification } = useNotifications();
 
   // Fetch user orders when user changes
   useEffect(() => {
     if (user) {
       fetchOrders();
+      fetchUserSales();
     } else {
       setOrders([]);
+      setUserSales([]);
     }
   }, [user]);
 
@@ -52,27 +51,24 @@ export const useOrderActions = () => {
     }
   };
 
-  // Get orders for the current user - already fetched from API
-  const getUserOrders = (): Order[] => orders;
+  const fetchUserSales = async () => {
+    if (!user) return;
 
-  // Get sales for the current user (seller)
-  const getUserSales = async (): Promise<UserSale[]> => {
-    if (!user) return [];
-    
     try {
       const response = await orderAPI.getSales();
       // Transform the API response to match our UserSale type
-      return (response.data || []).map((sale: any) => ({
+      const formattedSales = (response.data || []).map((sale: any) => ({
         order: {
           id: sale.orderId,
-          items: sale.items,
+          items: sale.items || [],
           buyerId: sale.userId || "unknown",
-          totalAmount: sale.items.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0),
+          totalAmount: sale.items ? sale.items.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0) : 0,
           status: sale.status,
           createdAt: sale.orderDate
         },
-        items: sale.items
+        items: sale.items || []
       }));
+      setUserSales(formattedSales);
     } catch (error) {
       console.error("Failed to fetch sales:", error);
       toast({
@@ -80,9 +76,11 @@ export const useOrderActions = () => {
         description: "Failed to fetch your sales data.",
         variant: "destructive",
       });
-      return [];
     }
   };
+
+  // Get orders for the current user - already fetched from API
+  const getUserOrders = (): Order[] => orders;
 
   // Create a new order using the API
   const createOrder = async (orderData: any): Promise<string | null> => {
@@ -100,6 +98,7 @@ export const useOrderActions = () => {
       
       // Refresh orders list and user data (for updated balance)
       fetchOrders();
+      fetchUserSales();
       await refreshUserData();
       
       toast({
@@ -132,7 +131,7 @@ export const useOrderActions = () => {
       // Transform the API response to match our Order type
       return {
         id: response.data._id || response.data.id,
-        items: response.data.items,
+        items: response.data.items || [],
         buyerId: response.data.userId,
         totalAmount: response.data.totalAmount,
         status: response.data.status,
@@ -147,11 +146,10 @@ export const useOrderActions = () => {
   return {
     orders,
     userOrders: orders,
-    userSales: [], // This will be fetched when needed using getUserSales()
+    userSales,
     createOrder,
     getOrderById,
     isLoading,
     fetchOrders,
-    getUserSales,
   };
 };

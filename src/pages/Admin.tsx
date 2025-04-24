@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -5,6 +6,7 @@ import { useNotifications } from "@/contexts/NotificationContext";
 import { useProducts } from "@/contexts/ProductContext";
 import { useOrders } from "@/contexts/OrderContext";
 import Navbar from "@/components/layout/Navbar";
+import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { 

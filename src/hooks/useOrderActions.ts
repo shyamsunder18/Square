@@ -2,7 +2,6 @@
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { orderAPI } from "@/services/api";
 import { Order, UserSale } from "@/types/order.types";
 
 export const useOrderActions = () => {
@@ -12,7 +11,7 @@ export const useOrderActions = () => {
   const { user, refreshUserData } = useAuth();
   const { toast } = useToast();
 
-  // Fetch user orders when user changes
+  // Load data from localStorage when component mounts
   useEffect(() => {
     if (user) {
       fetchOrders();
@@ -23,22 +22,14 @@ export const useOrderActions = () => {
     }
   }, [user]);
 
-  const fetchOrders = async () => {
+  const fetchOrders = () => {
     if (!user) return;
     
     setIsLoading(true);
     try {
-      const response = await orderAPI.getOrders();
-      // Transform the API response to match our Order type
-      const formattedOrders = response.data.map((order: any) => ({
-        id: order._id || order.id,
-        items: order.items,
-        buyerId: order.userId,
-        totalAmount: order.totalAmount,
-        status: order.status,
-        createdAt: order.createdAt
-      }));
-      setOrders(formattedOrders || []);
+      const storedOrders = localStorage.getItem(`orders_${user.id}`);
+      const parsedOrders = storedOrders ? JSON.parse(storedOrders) : [];
+      setOrders(parsedOrders);
     } catch (error) {
       console.error("Failed to fetch orders:", error);
       toast({
@@ -51,24 +42,13 @@ export const useOrderActions = () => {
     }
   };
 
-  const fetchUserSales = async () => {
+  const fetchUserSales = () => {
     if (!user) return;
 
     try {
-      const response = await orderAPI.getSales();
-      // Transform the API response to match our UserSale type
-      const formattedSales = (response.data || []).map((sale: any) => ({
-        order: {
-          id: sale.orderId,
-          items: sale.items || [],
-          buyerId: sale.userId || "unknown",
-          totalAmount: sale.items ? sale.items.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0) : 0,
-          status: sale.status,
-          createdAt: sale.orderDate
-        },
-        items: sale.items || []
-      }));
-      setUserSales(formattedSales);
+      const storedSales = localStorage.getItem(`sales_${user.id}`);
+      const parsedSales = storedSales ? JSON.parse(storedSales) : [];
+      setUserSales(parsedSales);
     } catch (error) {
       console.error("Failed to fetch sales:", error);
       toast({
@@ -79,10 +59,8 @@ export const useOrderActions = () => {
     }
   };
 
-  // Get orders for the current user - already fetched from API
   const getUserOrders = (): Order[] => orders;
 
-  // Create a new order using the API
   const createOrder = async (orderData: any): Promise<string | null> => {
     if (!user) {
       toast({
@@ -94,11 +72,40 @@ export const useOrderActions = () => {
     }
 
     try {
-      const response = await orderAPI.createOrder(orderData);
-      
-      // Refresh orders list and user data (for updated balance)
-      fetchOrders();
-      fetchUserSales();
+      const orderId = Date.now().toString();
+      const newOrder: Order = {
+        id: orderId,
+        items: orderData.items || [],
+        buyerId: user.id,
+        totalAmount: orderData.totalAmount || 0,
+        status: "pending",
+        createdAt: new Date().toISOString()
+      };
+
+      // Update orders in localStorage
+      const currentOrders = [...orders, newOrder];
+      localStorage.setItem(`orders_${user.id}`, JSON.stringify(currentOrders));
+      setOrders(currentOrders);
+
+      // Update sales for the seller
+      orderData.items.forEach((item: any) => {
+        const sellerId = item.sellerId;
+        if (sellerId) {
+          const storedSales = localStorage.getItem(`sales_${sellerId}`);
+          const currentSales = storedSales ? JSON.parse(storedSales) : [];
+          const newSale: UserSale = {
+            order: newOrder,
+            items: [item]
+          };
+          const updatedSales = [...currentSales, newSale];
+          localStorage.setItem(`sales_${sellerId}`, JSON.stringify(updatedSales));
+          
+          if (sellerId === user.id) {
+            setUserSales(updatedSales);
+          }
+        }
+      });
+
       await refreshUserData();
       
       toast({
@@ -106,41 +113,21 @@ export const useOrderActions = () => {
         description: "Thank you for your purchase!",
       });
       
-      return response.data._id || response.data.id;
+      return orderId;
     } catch (error: any) {
-      let errorMessage = "An error occurred while processing your order.";
-      if (error.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      }
-      
+      console.error("Failed to create order:", error);
       toast({
         title: "Failed to place order",
-        description: errorMessage,
+        description: "An error occurred while processing your order.",
         variant: "destructive",
       });
       return null;
     }
   };
 
-  // Get order by ID
-  const getOrderById = async (id: string): Promise<Order | null> => {
-    try {
-      const response = await orderAPI.getOrderById(id);
-      if (!response.data) return null;
-      
-      // Transform the API response to match our Order type
-      return {
-        id: response.data._id || response.data.id,
-        items: response.data.items || [],
-        buyerId: response.data.userId,
-        totalAmount: response.data.totalAmount,
-        status: response.data.status,
-        createdAt: response.data.createdAt
-      };
-    } catch (error) {
-      console.error("Failed to fetch order:", error);
-      return null;
-    }
+  const getOrderById = (id: string): Order | null => {
+    const order = orders.find(order => order.id === id);
+    return order || null;
   };
 
   return {

@@ -1,158 +1,198 @@
 
-import React, { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import React, { useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useToast } from "@/hooks/use-toast";
-import { rechargeAPI } from "@/services/api";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Loader2 } from "lucide-react";
 
-type SuperChargeDialogProps = {
+interface SuperChargeDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-};
+  onSuccess?: () => void;
+}
+
+const RECHARGE_OPTIONS = [
+  { value: 100, label: "₹100 = 100 points", bonus: 0 },
+  { value: 500, label: "₹500 = 500 points + 50 bonus", bonus: 50 },
+  { value: 1000, label: "₹1000 = 1000 points + 150 bonus", bonus: 150 },
+  { value: 2000, label: "₹2000 = 2000 points + 400 bonus", bonus: 400 },
+];
 
 const SuperChargeDialog: React.FC<SuperChargeDialogProps> = ({
   isOpen,
   onOpenChange,
+  onSuccess,
 }) => {
-  const [upiInfo, setUpiInfo] = useState({
-    image: '',
-    upiId: '',
-    instructions: '',
-  });
-  const [amount, setAmount] = useState("");
-  const [utrId, setUtrId] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [amount, setAmount] = useState<string>("500");
+  const [utrId, setUtrId] = useState<string>("");
+  const [submitting, setSubmitting] = useState(false);
   const { toast } = useToast();
-
-  useEffect(() => {
-    if (isOpen) {
-      fetchUPIInfo();
-    }
-  }, [isOpen]);
-
-  const fetchUPIInfo = async () => {
-    try {
-      setIsLoading(true);
-      const response = await rechargeAPI.getUPIInfo();
-      setUpiInfo(response.data);
-    } catch (error) {
-      console.error("Failed to fetch UPI info:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load payment information",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const { user, updateBalance } = useAuth();
 
   const handleSubmit = async () => {
-    if (!amount || !utrId) {
-      toast({
-        title: "Missing information",
-        description: "Please fill in all the fields",
-        variant: "destructive",
-      });
-      return;
-    }
-
+    if (!user) return;
+    
     try {
-      setIsSubmitting(true);
-      await rechargeAPI.submitRechargeRequest({
-        amount: parseFloat(amount),
-        utrId,
-      });
+      setSubmitting(true);
+      
+      // Get the selected recharge option
+      const selectedOption = RECHARGE_OPTIONS.find(
+        option => option.value.toString() === amount
+      );
+      
+      if (!selectedOption) {
+        throw new Error("Please select a valid amount");
+      }
+      
+      if (!utrId.trim()) {
+        throw new Error("UTR ID is required");
+      }
+      
+      // Get current users from localStorage
+      const users = JSON.parse(localStorage.getItem('users') || '[]');
+      const userIndex = users.findIndex((u: any) => u.id === user.id);
+      
+      if (userIndex === -1) {
+        throw new Error("User not found");
+      }
+      
+      // Create a recharge entry
+      const rechargeEntry = {
+        id: `recharge-${Date.now()}`,
+        amount: selectedOption.value,
+        pointsAdded: selectedOption.value,
+        bonusPoints: selectedOption.bonus,
+        utrId: utrId.trim(),
+        status: 'approved', // Auto-approve in localStorage implementation
+        createdAt: new Date().toISOString()
+      };
+      
+      // Update user's recharge history
+      if (!users[userIndex].rechargeHistory) {
+        users[userIndex].rechargeHistory = [];
+      }
+      users[userIndex].rechargeHistory.push(rechargeEntry);
+      
+      // Update balance
+      const newBalance = (users[userIndex].balance || 0) + 
+                        selectedOption.value + 
+                        selectedOption.bonus;
+      users[userIndex].balance = newBalance;
+      
+      // Update localStorage
+      localStorage.setItem('users', JSON.stringify(users));
+      
+      // Update current user balance
+      updateBalance(newBalance);
       
       toast({
-        title: "Request submitted",
-        description: "Your recharge request has been submitted for approval",
+        title: "Recharge Successful",
+        description: `Your account has been credited with ${selectedOption.value + selectedOption.bonus} points.`,
       });
       
-      // Reset form and close dialog
-      setAmount("");
-      setUtrId("");
+      // Close dialog and reset form
       onOpenChange(false);
-    } catch (error) {
-      console.error("Failed to submit recharge request:", error);
+      setUtrId("");
+      
+      // Call success callback if provided
+      if (onSuccess) {
+        onSuccess();
+      }
+    } catch (error: any) {
+      console.error("Recharge error:", error);
       toast({
-        title: "Error",
-        description: "Failed to submit recharge request",
+        title: "Recharge failed",
+        description: error.message || "An error occurred while processing your recharge.",
         variant: "destructive",
       });
     } finally {
-      setIsSubmitting(false);
+      setSubmitting(false);
     }
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>SuperCharge Your Account</DialogTitle>
+          <DialogTitle>SuperCharge Your Balance</DialogTitle>
           <DialogDescription>
-            Add points to your account to purchase products and services
+            Add balance to your account for making purchases.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6 py-4">
-          {isLoading ? (
-            <div className="text-center py-8">Loading payment details...</div>
-          ) : (
-            <>
-              <div className="flex flex-col items-center space-y-4">
-                <div className="border border-gray-200 rounded-lg p-4 max-w-xs">
-                  <img 
-                    src={upiInfo.image} 
-                    alt="UPI QR Code" 
-                    className="w-full h-auto"
-                  />
-                </div>
-                <div className="text-center">
-                  <p className="font-medium">UPI ID: {upiInfo.upiId}</p>
-                  <p className="text-sm text-muted-foreground mt-1">{upiInfo.instructions}</p>
-                </div>
-              </div>
+        <div className="grid gap-4 py-4">
+          <div className="grid gap-2">
+            <Label htmlFor="amount">Select Amount</Label>
+            <Select
+              value={amount}
+              onValueChange={setAmount}
+            >
+              <SelectTrigger id="amount">
+                <SelectValue placeholder="Select amount" />
+              </SelectTrigger>
+              <SelectContent>
+                {RECHARGE_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value.toString()}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Amount (₹)</label>
-                  <Input
-                    type="number"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    placeholder="Enter amount"
-                    min="1"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    First recharge ≥ ₹1000: Get 50 bonus points!<br/>
-                    Other recharges: Get 4.5% bonus points!
-                  </p>
-                </div>
+          <div className="grid gap-2">
+            <Label htmlFor="utr">UTR ID / Reference Number</Label>
+            <Input
+              id="utr"
+              value={utrId}
+              onChange={(e) => setUtrId(e.target.value)}
+              placeholder="Enter payment reference number"
+              required
+            />
+          </div>
 
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">UTR ID / Transaction ID</label>
-                  <Input
-                    value={utrId}
-                    onChange={(e) => setUtrId(e.target.value)}
-                    placeholder="Enter the UTR ID from your payment"
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end">
-                <Button 
-                  disabled={isSubmitting} 
-                  onClick={handleSubmit}
-                >
-                  {isSubmitting ? "Submitting..." : "Submit Request"}
-                </Button>
-              </div>
-            </>
-          )}
+          <div className="bg-amber-50 p-3 rounded-md border border-amber-200 text-xs text-amber-800">
+            <p className="font-medium">How to recharge:</p>
+            <ol className="list-decimal list-inside mt-1 space-y-1">
+              <li>Transfer money to our UPI: example@upi</li>
+              <li>Enter the UTR/Reference number from your payment app</li>
+              <li>Click recharge to add balance to your account</li>
+            </ol>
+          </div>
         </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button onClick={handleSubmit} disabled={submitting}>
+            {submitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Processing
+              </>
+            ) : (
+              "Recharge"
+            )}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

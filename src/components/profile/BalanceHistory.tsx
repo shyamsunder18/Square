@@ -1,6 +1,5 @@
 
 import React, { useState, useEffect } from "react";
-import { rechargeAPI } from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,9 +14,10 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { Wallet } from "lucide-react";
 import SuperChargeDialog from "./SuperChargeDialog";
+import { useAuth } from "@/contexts/AuthContext";
 
 type RechargeHistory = {
-  _id: string;
+  id: string;
   amount: number;
   pointsAdded: number;
   bonusPoints: number;
@@ -35,16 +35,40 @@ const BalanceHistory: React.FC<BalanceHistoryProps> = ({ balance }) => {
   const [loading, setLoading] = useState(true);
   const [superChargeDialogOpen, setSuperChargeDialogOpen] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   useEffect(() => {
     fetchRechargeHistory();
-  }, []);
+  }, [user]);
 
   const fetchRechargeHistory = async () => {
     try {
       setLoading(true);
-      const response = await rechargeAPI.getRechargeHistory();
-      setRechargeHistory(response.data.rechargeHistory);
+      
+      // Get recharge history from localStorage
+      if (user) {
+        const users = JSON.parse(localStorage.getItem('users') || '[]');
+        const currentUser = users.find((u: any) => u.id === user.id);
+        
+        // Initialize recharge history if it doesn't exist
+        const history = currentUser?.rechargeHistory || [];
+        
+        // Convert to the expected format
+        const formattedHistory = history.map((entry: any) => ({
+          _id: entry.id || `recharge-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          amount: entry.amount,
+          pointsAdded: entry.pointsAdded,
+          bonusPoints: entry.bonusPoints || 0,
+          status: entry.status,
+          utrId: entry.utrId,
+          createdAt: entry.createdAt
+        }));
+        
+        setRechargeHistory(formattedHistory);
+      } else {
+        // No user logged in
+        setRechargeHistory([]);
+      }
     } catch (error) {
       console.error("Failed to fetch recharge history:", error);
       toast({
@@ -52,6 +76,8 @@ const BalanceHistory: React.FC<BalanceHistoryProps> = ({ balance }) => {
         description: "Failed to load your balance history",
         variant: "destructive",
       });
+      // Initialize with empty array on error
+      setRechargeHistory([]);
     } finally {
       setLoading(false);
     }
@@ -135,6 +161,7 @@ const BalanceHistory: React.FC<BalanceHistoryProps> = ({ balance }) => {
       <SuperChargeDialog 
         isOpen={superChargeDialogOpen} 
         onOpenChange={setSuperChargeDialogOpen} 
+        onSuccess={fetchRechargeHistory}
       />
     </div>
   );

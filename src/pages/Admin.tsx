@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -586,18 +585,18 @@ const Admin = () => {
                     {products
                       .filter(product => 
                         listingsType === "products" 
-                          ? product.type === 'product' || !product.type
-                          : product.type === 'service'
+                          ? product.category === "goods" 
+                          : product.category === "services"
                       )
                       .map((product) => (
                         <TableRow key={product.id}>
                           <TableCell>{product.title}</TableCell>
                           <TableCell>₹{product.price}</TableCell>
                           <TableCell>{product.category}</TableCell>
-                          <TableCell>{product.sellerName}</TableCell>
+                          <TableCell>{product.sellerId}</TableCell>
                           <TableCell>
-                            <Badge className={product.available ? "bg-green-600" : "bg-red-600"}>
-                              {product.available ? "Available" : "Unavailable"}
+                            <Badge className={product.count !== 0 ? "bg-green-600" : "bg-red-600"}>
+                              {product.count !== 0 ? "Available" : "Unavailable"}
                             </Badge>
                           </TableCell>
                         </TableRow>

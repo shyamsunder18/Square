@@ -55,7 +55,7 @@ const BalanceHistory: React.FC<BalanceHistoryProps> = ({ balance }) => {
         
         // Convert to the expected format
         const formattedHistory = history.map((entry: any) => ({
-          _id: entry.id || `recharge-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          id: entry.id || `recharge-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
           amount: entry.amount,
           pointsAdded: entry.pointsAdded,
           bonusPoints: entry.bonusPoints || 0,
@@ -136,7 +136,7 @@ const BalanceHistory: React.FC<BalanceHistoryProps> = ({ balance }) => {
             </TableHeader>
             <TableBody>
               {rechargeHistory.map((recharge) => (
-                <TableRow key={recharge._id}>
+                <TableRow key={recharge.id}>
                   <TableCell>
                     {format(new Date(recharge.createdAt), 'MMM d, yyyy HH:mm')}
                   </TableCell>

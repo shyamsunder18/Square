@@ -5,8 +5,6 @@ import { useNotifications } from "@/contexts/NotificationContext";
 import { useProducts } from "@/contexts/ProductContext";
 import { useOrders } from "@/contexts/OrderContext";
 import Navbar from "@/components/layout/Navbar";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { 
@@ -47,7 +45,7 @@ type RechargeHistory = {
 };
 
 const Admin = () => {
-  const { isAdmin, isAuthenticated } = useAuth();
+  const { user, isAdmin, isAuthenticated } = useAuth();
   const { notifications, markAsRead } = useNotifications();
   const { products } = useProducts();
   const { orders } = useOrders();
@@ -209,9 +207,9 @@ const Admin = () => {
       users[userIndex] = user;
       localStorage.setItem('users', JSON.stringify(users));
       
-      if (currentUser && currentUser.id === userId) {
-        currentUser.balance = user.balance;
-        localStorage.setItem('user', JSON.stringify(currentUser));
+      if (user && user.id === userId) {
+        const updatedUserData = { ...user };
+        localStorage.setItem('user', JSON.stringify(updatedUserData));
       }
       
       toast({
@@ -363,7 +361,6 @@ const Admin = () => {
           </TabsList>
 
           <TabsContent value="recharges" className="bg-white p-6 rounded-lg shadow-sm">
-            <h2 className="text-xl font-semibold mb-4">Pending Recharge Requests</h2>
             <PendingRechargesTab
               pendingRecharges={pendingRecharges}
               loading={loading}
@@ -374,9 +371,6 @@ const Admin = () => {
           </TabsContent>
 
           <TabsContent value="rechargeHistory" className="bg-white p-6 rounded-lg shadow-sm">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">Recharge History</h2>
-            </div>
             <RechargeHistoryTab
               rechargeHistory={rechargeHistory}
               activeTab={activeTab}

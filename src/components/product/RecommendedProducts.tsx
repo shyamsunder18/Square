@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { productAPI } from "@/services/api";
+import { recommendationAPI } from "@/services/api";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useCart } from "@/contexts/CartContext";
@@ -30,10 +30,17 @@ const RecommendedProducts: React.FC = () => {
   const fetchRecommendations = async () => {
     try {
       setIsLoading(true);
-      const response = await productAPI.getRecommendedProducts();
-      setRecommendations(response.data);
+      const response = await recommendationAPI.getRecommendations();
+      // Ensure we have an array of products even if the API returns something else
+      if (response.data && Array.isArray(response.data)) {
+        setRecommendations(response.data);
+      } else {
+        console.error("Invalid recommendations data format:", response.data);
+        setRecommendations([]);
+      }
     } catch (error) {
       console.error("Failed to fetch recommendations:", error);
+      setRecommendations([]);
     } finally {
       setIsLoading(false);
     }
@@ -72,7 +79,7 @@ const RecommendedProducts: React.FC = () => {
     );
   }
 
-  if (recommendations.length === 0) {
+  if (!recommendations || recommendations.length === 0) {
     return null;
   }
 

@@ -1,7 +1,6 @@
 
 import React, { createContext, useState, useContext, useEffect, ReactNode } from "react";
 import { useToast } from "@/hooks/use-toast";
-import api, { authAPI } from "@/services/api";
 
 type User = {
   id: string;
@@ -31,41 +30,47 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  const refreshUserData = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        setLoading(false);
-        return;
-      }
+  useEffect(() => {
+    // Check for existing user in localStorage on mount
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      const parsedUser = JSON.parse(storedUser);
+      setUser(parsedUser);
+      setBalance(parsedUser.balance || 0);
+    }
+    setLoading(false);
+  }, []);
 
-      const { data } = await authAPI.getCurrentUser();
-      if (data && data.user) {
-        setUser(data.user);
-        setBalance(data.user.balance || 0);
-      }
-    } catch (error) {
-      console.error("Failed to refresh user data:", error);
-      // Invalid or expired token
-      logout();
-    } finally {
-      setLoading(false);
+  const refreshUserData = async () => {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      const parsedUser = JSON.parse(storedUser);
+      setUser(parsedUser);
+      setBalance(parsedUser.balance || 0);
     }
   };
 
-  useEffect(() => {
-    refreshUserData();
-  }, []);
-
   const login = async (email: string, password: string) => {
     try {
-      const response = await authAPI.login({ email, password });
-      const userData = response.data;
+      // Check if user exists in localStorage
+      const users = JSON.parse(localStorage.getItem('users') || '[]');
+      const foundUser = users.find((u: any) => u.email === email && u.password === password);
       
-      localStorage.setItem("token", userData.token);
+      if (!foundUser) {
+        throw new Error('Invalid credentials');
+      }
       
-      setUser(userData.user);
-      setBalance(userData.user.balance || 0);
+      const userData = {
+        id: foundUser.id,
+        name: foundUser.name,
+        email: foundUser.email,
+        isAdmin: foundUser.isAdmin || false,
+        balance: foundUser.balance || 0
+      };
+      
+      localStorage.setItem('user', JSON.stringify(userData));
+      setUser(userData);
+      setBalance(userData.balance);
       
       toast({
         title: "Login successful",
@@ -74,18 +79,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } catch (error: any) {
       console.error("Login error:", error);
       
-      let errorMessage = "Unable to login. Please check your network connection.";
-      if (error.response) {
-        errorMessage = error.response.data.message || "Invalid email or password";
-      } else if (error.request) {
-        errorMessage = "Server is not responding. Please try again later.";
-      } else {
-        errorMessage = "Network error. Please check your connection.";
-      }
-      
       toast({
         title: "Login failed",
-        description: errorMessage,
+        description: error.message || "Invalid email or password",
         variant: "destructive",
       });
       throw error;
@@ -94,13 +90,40 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const register = async (name: string, email: string, password: string) => {
     try {
-      const response = await authAPI.register({ name, email, password });
-      const userData = response.data;
+      // Get existing users or initialize empty array
+      const users = JSON.parse(localStorage.getItem('users') || '[]');
       
-      localStorage.setItem("token", userData.token);
+      // Check if user already exists
+      if (users.some((u: any) => u.email === email)) {
+        throw new Error('User already exists with this email');
+      }
       
-      setUser(userData.user);
-      setBalance(userData.user.balance || 0);
+      // Create new user
+      const newUser = {
+        id: `user-${Date.now()}`,
+        name,
+        email,
+        password, // In a real app, this should be hashed
+        isAdmin: false,
+        balance: 0
+      };
+      
+      // Add to users array
+      users.push(newUser);
+      localStorage.setItem('users', JSON.stringify(users));
+      
+      // Set current user
+      const userData = {
+        id: newUser.id,
+        name: newUser.name,
+        email: newUser.email,
+        isAdmin: newUser.isAdmin,
+        balance: newUser.balance
+      };
+      
+      localStorage.setItem('user', JSON.stringify(userData));
+      setUser(userData);
+      setBalance(userData.balance);
       
       toast({
         title: "Registration successful",
@@ -109,18 +132,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } catch (error: any) {
       console.error("Registration error:", error);
       
-      let errorMessage = "Unable to register. Please check your network connection.";
-      if (error.response) {
-        errorMessage = error.response.data.message || "Registration failed";
-      } else if (error.request) {
-        errorMessage = "Server is not responding. Please ensure your backend server is running.";
-      } else {
-        errorMessage = "Network error. Please check your connection.";
-      }
-      
       toast({
         title: "Registration failed",
-        description: errorMessage,
+        description: error.message || "Registration failed",
         variant: "destructive",
       });
       throw error;
@@ -128,9 +142,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const logout = () => {
+    localStorage.removeItem('user');
     setUser(null);
     setBalance(0);
-    localStorage.removeItem("token");
     
     toast({
       title: "Logged out",
@@ -141,8 +155,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const updateBalance = (newBalance: number) => {
     if (user) {
       const updatedUser = { ...user, balance: newBalance };
+      localStorage.setItem('user', JSON.stringify(updatedUser));
       setUser(updatedUser);
       setBalance(newBalance);
+      
+      // Also update in users array
+      const users = JSON.parse(localStorage.getItem('users') || '[]');
+      const updatedUsers = users.map((u: any) => 
+        u.id === user.id ? { ...u, balance: newBalance } : u
+      );
+      localStorage.setItem('users', JSON.stringify(updatedUsers));
     }
   };
 

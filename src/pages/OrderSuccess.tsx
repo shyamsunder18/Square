@@ -14,10 +14,10 @@ const OrderSuccess: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   
   useEffect(() => {
-    const fetchOrderDetails = async () => {
+    const fetchOrderDetails = () => {
       if (orderId) {
         try {
-          const fetchedOrder = await getOrderById(orderId);
+          const fetchedOrder = getOrderById(orderId);
           setOrder(fetchedOrder);
         } catch (error) {
           console.error("Failed to fetch order:", error);

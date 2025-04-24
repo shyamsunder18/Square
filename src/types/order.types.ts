@@ -22,5 +22,5 @@ export type OrderContextType = {
   userOrders: Order[];
   userSales: UserSale[];
   createOrder: (orderData: any) => Promise<string | null>;
-  getOrderById: (id: string) => Promise<Order | null>;
+  getOrderById: (id: string) => Order | null;
 };

@@ -24,6 +24,10 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Admin credentials
+const ADMIN_EMAIL = "admin@example.com";
+const ADMIN_PASSWORD = "admin123";
+
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [balance, setBalance] = useState<number>(0);
@@ -38,8 +42,35 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setUser(parsedUser);
       setBalance(parsedUser.balance || 0);
     }
+    
+    // Check if we need to initialize admin user
+    initializeAdminUser();
+    
     setLoading(false);
   }, []);
+
+  const initializeAdminUser = () => {
+    // Get existing users or initialize empty array
+    const users = JSON.parse(localStorage.getItem('users') || '[]');
+    
+    // Check if admin exists
+    const adminExists = users.some((u: any) => u.email === ADMIN_EMAIL);
+    
+    if (!adminExists) {
+      // Create admin user
+      const adminUser = {
+        id: `admin-${Date.now()}`,
+        name: "Admin",
+        email: ADMIN_EMAIL,
+        password: ADMIN_PASSWORD, // In a real app, this should be hashed
+        isAdmin: true,
+        balance: 0
+      };
+      
+      users.push(adminUser);
+      localStorage.setItem('users', JSON.stringify(users));
+    }
+  };
 
   const refreshUserData = async () => {
     const storedUser = localStorage.getItem('user');
@@ -74,7 +105,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       
       toast({
         title: "Login successful",
-        description: "You've been logged in successfully.",
+        description: `Welcome back, ${userData.name}!`,
       });
     } catch (error: any) {
       console.error("Login error:", error);

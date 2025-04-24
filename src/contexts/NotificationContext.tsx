@@ -48,17 +48,22 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     // Update localStorage when notifications change
     localStorage.setItem("notifications", JSON.stringify(notifications));
     
-    // Update unread count - only count notifications for the current user
+    // Update unread count - only count notifications for the current user or admin notifications if user is admin
     const count = notifications.filter(n => 
       !n.read && 
-      (!n.receiverId || n.receiverId === user?.id)
+      ((!n.receiverId && user?.id === n.receiverId) || 
+       (n.receiverId === "admin" && user?.isAdmin) ||
+       (!n.receiverId || n.receiverId === user?.id))
     ).length;
     setUnreadCount(count);
   }, [notifications, user]);
 
   const addNotification = (notification: Omit<Notification, "id" | "read" | "createdAt">) => {
-    // If the notification has a receiverId and it's not the current user, don't add it
-    if (notification.receiverId && user?.id !== notification.receiverId) {
+    // For admin notifications, always add them regardless of current user
+    const isAdminNotification = notification.receiverId === "admin";
+    
+    // For regular user notifications, only add if user matches
+    if (!isAdminNotification && notification.receiverId && user?.id !== notification.receiverId) {
       return;
     }
     
@@ -71,10 +76,13 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     
     setNotifications((prev) => [newNotification, ...prev]);
     
-    // Show toast notification
-    toast(notification.title, {
-      description: notification.message,
-    });
+    // Show toast notification for current user notifications or admin notifications if user is admin
+    if ((!newNotification.receiverId || newNotification.receiverId === user?.id) || 
+        (newNotification.receiverId === "admin" && user?.isAdmin)) {
+      toast(notification.title, {
+        description: notification.message,
+      });
+    }
   };
 
   const markAsRead = (id: string) => {
@@ -97,7 +105,10 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     <NotificationContext.Provider
       value={{
         notifications: notifications.filter(n => 
-          !n.receiverId || n.receiverId === user?.id
+          // Regular user sees their notifications
+          (!n.receiverId || n.receiverId === user?.id) ||
+          // Admin sees admin notifications
+          (n.receiverId === "admin" && user?.isAdmin)
         ),
         unreadCount,
         addNotification,

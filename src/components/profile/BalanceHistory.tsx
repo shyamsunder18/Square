@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
-import { Wallet } from "lucide-react";
+import { Wallet, MessageSquare } from "lucide-react";
 import SuperChargeDialog from "./SuperChargeDialog";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -107,12 +107,24 @@ const BalanceHistory: React.FC<BalanceHistoryProps> = ({ balance }) => {
           </div>
         </div>
         
-        <Button 
-          className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
-          onClick={() => setSuperChargeDialogOpen(true)}
-        >
-          SuperCharge
-        </Button>
+        <div className="flex flex-col gap-2">
+          <Button 
+            className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
+            onClick={() => setSuperChargeDialogOpen(true)}
+          >
+            SuperCharge
+          </Button>
+          
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => setSuperChargeDialogOpen(true)}
+            className="flex items-center text-xs"
+          >
+            <MessageSquare className="mr-1 h-3 w-3" />
+            Message Admin
+          </Button>
+        </div>
       </div>
 
       <h3 className="text-lg font-semibold mb-4 mt-8">Recharge History</h3>

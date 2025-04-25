@@ -59,6 +59,7 @@ const ListingsTab: React.FC<ListingsTabProps> = ({
                 <TableHead>Category</TableHead>
                 <TableHead>Seller</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Stock</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -84,6 +85,9 @@ const ListingsTab: React.FC<ListingsTabProps> = ({
                           ? "Available" 
                           : "Out of Stock"}
                       </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {product.category === "goods" ? (product.count || 0) : "N/A"}
                     </TableCell>
                   </TableRow>
                 ))}

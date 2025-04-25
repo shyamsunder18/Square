@@ -47,9 +47,22 @@ export const useOrderActions = () => {
     if (!user) return;
 
     try {
-      const storedSales = localStorage.getItem(`sales_${user.id}`);
-      const parsedSales = storedSales ? JSON.parse(storedSales) : [];
-      setUserSales(parsedSales);
+      const allOrders = JSON.parse(localStorage.getItem("orders") || "[]");
+      const userSales: UserSale[] = [];
+      
+      // Process each order to find items sold by this user
+      allOrders.forEach((order: Order) => {
+        const sellerItems = order.items.filter(item => item.sellerId === user.id);
+        
+        if (sellerItems.length > 0) {
+          userSales.push({
+            order,
+            items: sellerItems
+          });
+        }
+      });
+      
+      setUserSales(userSales);
     } catch (error) {
       console.error("Failed to fetch sales:", error);
       toast({
@@ -108,21 +121,6 @@ export const useOrderActions = () => {
             if (productIndex !== -1) {
               updatedProducts[productIndex].count = Math.max(0, (updatedProducts[productIndex].count || 0) - item.quantity);
             }
-          }
-          
-          // Update seller's sales history
-          const storedSales = localStorage.getItem(`sales_${sellerId}`) || "[]";
-          const currentSales = JSON.parse(storedSales);
-          const newSale: UserSale = {
-            order: newOrder,
-            items: [item]
-          };
-          const updatedSales = [...currentSales, newSale];
-          localStorage.setItem(`sales_${sellerId}`, JSON.stringify(updatedSales));
-          
-          // If current user is the seller, update their sales state
-          if (sellerId === user.id) {
-            setUserSales(updatedSales);
           }
           
           // Transfer funds to seller's balance

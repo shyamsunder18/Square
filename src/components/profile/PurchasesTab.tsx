@@ -43,7 +43,9 @@ const PurchasesTab: React.FC = () => {
     const product = getProductById(productId);
     if (!product || !product.reviews) return false;
     
-    return product.reviews.some(review => review.orderId === orderId);
+    return product.reviews.some(review => 
+      review.orderId === orderId
+    );
   };
 
   return (
@@ -97,14 +99,14 @@ const PurchasesTab: React.FC = () => {
                             key={`${item.id}-${index}`}
                             variant={hasReviewed ? "outline" : "default"}
                             size="sm"
-                            onClick={async () => {
+                            onClick={() => {
                               const product = getProductById(item.id);
                               setReviewModal({
                                 isOpen: true,
                                 productId: item.id,
                                 productTitle: item.title,
                                 productImage: item.image,
-                                sellerId: product?.sellerId || "",
+                                sellerId: item.sellerId,
                                 orderId: order.id,
                                 existingReview: hasReviewed
                               });

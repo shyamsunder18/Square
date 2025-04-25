@@ -5,7 +5,7 @@ import { BadgeDollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useOrders } from "@/contexts/OrderContext";
-import { Order, UserSale } from "@/types/order.types";
+import { UserSale } from "@/types/order.types";
 
 interface SalesTabProps {
   userSales: UserSale[];

@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useContext, useEffect, ReactNode } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
@@ -12,16 +11,25 @@ type User = {
   rechargeHistory?: any[];
 };
 
+type UserData = {
+  id: string;
+  name: string;
+  email: string;
+  isAdmin: boolean;
+  balance: number;
+  rechargeHistory: any[];
+};
+
 type AuthContextType = {
   user: User | null;
   isAuthenticated: boolean;
   isAdmin: boolean;
   balance: number;
-  login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<UserData>;
+  register: (name: string, email: string, password: string) => Promise<UserData>;
   logout: () => void;
   updateBalance: (newBalance: number) => void;
-  refreshUserData: () => Promise<void>;
+  refreshUserData: () => Promise<UserData | undefined>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -160,7 +168,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         password, // In a real app, this should be hashed
         isAdmin: false,
         balance: 0,
-        rechargeHistory: []
+        rechargeHistory: [],
+        hasReceivedFirstTimeBonus: false
       };
       
       // Add to users array

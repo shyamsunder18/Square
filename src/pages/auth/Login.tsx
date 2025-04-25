@@ -1,111 +1,119 @@
 
-import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { AlertCircle } from "lucide-react";
 
-const Login: React.FC = () => {
+const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const { login } = useAuth();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { login, isAuthenticated, isAdmin } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
-
+  
+  const from = location.state?.from?.pathname || "/";
+  
+  useEffect(() => {
+    // If already authenticated, redirect based on user type
+    if (isAuthenticated) {
+      if (isAdmin) {
+        navigate('/admin');
+      } else {
+        navigate(from);
+      }
+    }
+  }, [isAuthenticated, isAdmin, navigate, from]);
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
     
     if (!email || !password) {
-      setError("Please fill in all fields.");
       toast({
-        title: "Missing fields",
-        description: "Please fill in all fields.",
+        title: "Error",
+        description: "Please fill in all fields",
         variant: "destructive",
       });
       return;
     }
     
     try {
-      setIsLoading(true);
-      await login(email, password);
-      navigate("/");
-    } catch (error: any) {
-      console.error(error);
+      setIsSubmitting(true);
+      const userData = await login(email, password);
       
-      if (error?.response?.data?.message) {
-        setError(error.response.data.message);
-      } else if (error?.request) {
-        setError("Server is not responding. Please try again later.");
+      // Redirect based on user type
+      if (userData.isAdmin) {
+        navigate('/admin');
       } else {
-        setError("Network error. Please check your connection and try again.");
+        navigate(from);
       }
-    } finally {
-      setIsLoading(false);
+    } catch (error) {
+      console.error("Login error:", error);
+      setIsSubmitting(false);
     }
   };
-
+  
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
-      <div className="w-full max-w-md p-8 space-y-8 bg-white rounded-lg shadow-md">
-        <h1 className="text-3xl font-bold mb-8 text-center">Sign in to your account</h1>
-        
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative flex items-center" role="alert">
-            <AlertCircle className="h-4 w-4 mr-2" />
-            <span>{error}</span>
-          </div>
-        )}
-        
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="space-y-1">
-            <label htmlFor="email" className="text-gray-700">Email address</label>
-            <Input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter your email"
-              disabled={isLoading}
-              className="w-full"
-            />
-          </div>
-          
-          <div className="space-y-1">
-            <label htmlFor="password" className="text-gray-700">Password</label>
-            <Input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your password"
-              disabled={isLoading}
-              className="w-full"
-            />
-          </div>
-          
-          <Button 
-            type="submit" 
-            disabled={isLoading} 
-            className="w-full"
-          >
-            {isLoading ? "Signing in..." : "Sign in"}
-          </Button>
+    <div className="container mx-auto flex items-center justify-center min-h-screen px-4">
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle className="text-2xl">Login</CardTitle>
+          <CardDescription>
+            Enter your credentials to access your account
+          </CardDescription>
+        </CardHeader>
+        <form onSubmit={handleSubmit}>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="email@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
+          </CardContent>
+          <CardFooter className="flex flex-col">
+            <Button 
+              className="w-full mb-4" 
+              type="submit" 
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Logging in..." : "Login"}
+            </Button>
+            <p className="text-sm text-center text-gray-500">
+              Don't have an account?{" "}
+              <Button 
+                variant="link" 
+                className="p-0 h-auto text-primary" 
+                type="button"
+                onClick={() => navigate("/register")}
+              >
+                Register
+              </Button>
+            </p>
+          </CardFooter>
         </form>
-        
-        <div className="mt-6 text-center">
-          <p className="text-gray-600">
-            Don't have an account?{" "}
-            <Link to="/register" className="text-primary hover:underline">
-              Sign up
-            </Link>
-          </p>
-        </div>
-      </div>
+      </Card>
     </div>
   );
 };

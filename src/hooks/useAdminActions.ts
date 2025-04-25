@@ -1,192 +1,205 @@
 
-import { useState, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { PendingRecharge, RechargeHistory } from "@/types/admin.types";
 
 export const useAdminActions = () => {
-  const [pendingRecharges, setPendingRecharges] = useState<PendingRecharge[]>([]);
-  const [rechargeHistory, setRechargeHistory] = useState<RechargeHistory[]>([]);
-  const [upiImage, setUpiImage] = useState("");
-  const [upiId, setUpiId] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [pendingRecharges, setPendingRecharges] = useState<any[]>([]);
+  const [rechargeHistory, setRechargeHistory] = useState<any[]>([]);
+  const [upiImage, setUpiImage] = useState<string>("");
+  const [upiId, setUpiId] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(true);
   const [processingRecharge, setProcessingRecharge] = useState<string | null>(null);
+  
   const { toast } = useToast();
-
-  const fetchPendingRecharges = () => {
+  const { user, refreshUserData } = useAuth();
+  
+  // Get all users with pending recharge requests
+  const fetchPendingRecharges = useCallback(() => {
     try {
       setLoading(true);
       const users = JSON.parse(localStorage.getItem('users') || '[]');
-      const pending: PendingRecharge[] = [];
+      const pendingRequests: any[] = [];
       
       users.forEach((user: any) => {
         if (user.rechargeHistory && Array.isArray(user.rechargeHistory)) {
           const userPendingRecharges = user.rechargeHistory
             .filter((recharge: any) => recharge.status === 'pending')
             .map((recharge: any) => ({
-              rechargeId: recharge.id,
+              id: recharge.id,
               userId: user.id,
               userName: user.name,
               userEmail: user.email,
               amount: recharge.amount,
-              bonusPoints: recharge.bonusPoints,
               utrId: recharge.utrId,
-              date: recharge.createdAt
+              status: recharge.status,
+              createdAt: recharge.createdAt,
+              hasReceivedFirstTimeBonus: user.hasReceivedFirstTimeBonus || false
             }));
-          pending.push(...userPendingRecharges);
+            
+          pendingRequests.push(...userPendingRecharges);
         }
       });
       
-      setPendingRecharges(pending);
+      // Sort by newest first
+      pendingRequests.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      setPendingRecharges(pendingRequests);
+      setLoading(false);
     } catch (error) {
-      console.error("Failed to fetch pending recharges:", error);
+      console.error('Error fetching pending recharges:', error);
       toast({
-        title: "Error",
-        description: "Failed to fetch pending recharge requests",
+        title: "Failed to load pending recharges",
+        description: "There was an error loading the pending recharge requests.",
         variant: "destructive",
       });
-    } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
-  const fetchRechargeHistory = () => {
+  // Get recharge history
+  const fetchRechargeHistory = useCallback(() => {
     try {
       const users = JSON.parse(localStorage.getItem('users') || '[]');
-      const history: RechargeHistory[] = [];
+      const allHistory: any[] = [];
       
       users.forEach((user: any) => {
         if (user.rechargeHistory && Array.isArray(user.rechargeHistory)) {
-          const userCompletedRecharges = user.rechargeHistory
-            .filter((recharge: any) => recharge.status === 'approved' || recharge.status === 'rejected')
+          const userRecharges = user.rechargeHistory
+            .filter((recharge: any) => recharge.status !== 'pending')
             .map((recharge: any) => ({
               id: recharge.id,
               userId: user.id,
               userName: user.name,
               amount: recharge.amount,
-              pointsAdded: recharge.pointsAdded,
-              bonusPoints: recharge.bonusPoints,
+              pointsAdded: recharge.pointsAdded || 0,
+              bonusPoints: recharge.bonusPoints || 0,
               status: recharge.status,
               utrId: recharge.utrId,
               createdAt: recharge.createdAt
             }));
-          history.push(...userCompletedRecharges);
+            
+          allHistory.push(...userRecharges);
         }
       });
       
-      history.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      setRechargeHistory(history);
+      // Sort by newest first
+      allHistory.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      setRechargeHistory(allHistory);
     } catch (error) {
-      console.error("Failed to fetch recharge history:", error);
+      console.error('Error fetching recharge history:', error);
+      toast({
+        title: "Failed to load recharge history",
+        description: "There was an error loading the recharge history.",
+        variant: "destructive",
+      });
     }
-  };
+  }, [toast]);
 
-  const fetchUPIInfo = () => {
+  // Get UPI info from localStorage
+  const fetchUPIInfo = useCallback(() => {
     try {
-      const upiInfo = {
-        image: localStorage.getItem('upiImage') || '',
-        upiId: localStorage.getItem('upiId') || 'example@upi'
-      };
-      
-      setUpiImage(upiInfo.image);
-      setUpiId(upiInfo.upiId);
+      const storedUPIInfo = localStorage.getItem('upiInfo');
+      if (storedUPIInfo) {
+        const upiInfo = JSON.parse(storedUPIInfo);
+        setUpiImage(upiInfo.image || "");
+        setUpiId(upiInfo.upiId || "");
+      }
     } catch (error) {
-      console.error("Failed to fetch UPI info:", error);
+      console.error('Error fetching UPI info:', error);
     }
+  }, []);
+
+  // Calculate bonus points based on amount and first-time recharge status
+  const calculateBonusPoints = (amount: number, isFirstTime: boolean) => {
+    // Only apply bonus for first-time recharges
+    if (!isFirstTime) return 0;
+    
+    if (amount < 500) return 0;
+    else if (amount >= 500 && amount < 1000) return 50;
+    else if (amount >= 1000 && amount < 2000) return 100;
+    else if (amount >= 2000 && amount < 3000) return 150;
+    else if (amount >= 3000 && amount < 4000) return 200;
+    else return 250; // for amount >= 4000
   };
 
-  const calculateBonusPoints = (amount: number, userId: string): number => {
-    try {
-      const users = JSON.parse(localStorage.getItem('users') || '[]');
-      const userIndex = users.findIndex((u: any) => u.id === userId);
-      
-      if (userIndex === -1) {
-        return 0;
-      }
-      
-      const user = users[userIndex];
-      
-      // Check if user has any approved recharges before (to give first-time bonus)
-      const hasApprovedRecharges = user.rechargeHistory && 
-        user.rechargeHistory.some((r: any) => r.status === 'approved');
-      
-      if (!hasApprovedRecharges) {
-        // First time recharge bonus logic
-        if (amount < 500) {
-          return 0;
-        } else if (amount >= 500 && amount < 1000) {
-          return 50;
-        } else if (amount >= 1000 && amount < 2000) {
-          return 100;
-        } else if (amount >= 2000 && amount < 3000) {
-          return 150;
-        } else if (amount >= 3000 && amount < 4000) {
-          return 200;
-        } else {
-          return 250;
-        }
-      }
-      
-      // No bonus for subsequent recharges
-      return 0;
-    } catch (error) {
-      console.error("Error calculating bonus points:", error);
-      return 0;
-    }
-  };
-
-  const handleApproveRecharge = (userId: string, rechargeId: string) => {
+  // Handle approve recharge
+  const handleApproveRecharge = async (userId: string, rechargeId: string, amount: number, isFirstTimeRecharge: boolean) => {
     try {
       setProcessingRecharge(rechargeId);
       
+      // Get users array
       const users = JSON.parse(localStorage.getItem('users') || '[]');
       const userIndex = users.findIndex((u: any) => u.id === userId);
       
       if (userIndex === -1) {
-        throw new Error("User not found");
+        throw new Error('User not found');
       }
       
+      // Find recharge in user's history
       const user = users[userIndex];
-      const rechargeIndex = user.rechargeHistory.findIndex(
-        (r: any) => r.id === rechargeId
-      );
+      const rechargeIndex = user.rechargeHistory.findIndex((r: any) => r.id === rechargeId);
       
       if (rechargeIndex === -1) {
-        throw new Error("Recharge request not found");
+        throw new Error('Recharge request not found');
       }
       
-      const recharge = user.rechargeHistory[rechargeIndex];
+      // Calculate bonus points if this is user's first recharge
+      const bonusPoints = calculateBonusPoints(amount, !user.hasReceivedFirstTimeBonus);
       
-      if (recharge.status !== 'pending') {
-        throw new Error("This request has already been processed");
+      // Update recharge status
+      user.rechargeHistory[rechargeIndex] = {
+        ...user.rechargeHistory[rechargeIndex],
+        status: 'approved',
+        pointsAdded: amount,
+        bonusPoints: bonusPoints,
+        approvedAt: new Date().toISOString()
+      };
+      
+      // Update user balance
+      user.balance = (user.balance || 0) + amount + bonusPoints;
+      
+      // Mark that user has received first-time bonus
+      if (!user.hasReceivedFirstTimeBonus) {
+        user.hasReceivedFirstTimeBonus = true;
       }
       
-      recharge.status = 'approved';
-      
-      // Calculate bonus points based on the new logic
-      const bonusPoints = calculateBonusPoints(recharge.amount, userId);
-      recharge.bonusPoints = bonusPoints;
-      
-      const pointsToAdd = recharge.amount + bonusPoints;
-      user.balance = (user.balance || 0) + pointsToAdd;
-      
+      // Update users array in localStorage
       users[userIndex] = user;
       localStorage.setItem('users', JSON.stringify(users));
+      
+      // Refresh lists
+      fetchPendingRecharges();
+      fetchRechargeHistory();
+      
+      // Create notification for the user
+      const notifications = JSON.parse(localStorage.getItem('notifications') || '[]');
+      notifications.push({
+        id: `notification-${Date.now()}`,
+        receiverId: userId,
+        type: 'recharge-approved',
+        title: 'Recharge Approved',
+        message: `Your recharge of ₹${amount} has been approved${bonusPoints > 0 ? ` with a bonus of ₹${bonusPoints}!` : '!'}`,
+        read: false,
+        createdAt: new Date().toISOString()
+      });
+      
+      localStorage.setItem('notifications', JSON.stringify(notifications));
       
       toast({
         title: "Recharge approved",
-        description: `Added ${recharge.amount} points + ${bonusPoints} bonus points`,
+        description: `Successfully approved recharge for ${user.name}.`,
       });
       
-      setPendingRecharges(prev => 
-        prev.filter(r => !(r.userId === userId && r.rechargeId === rechargeId))
-      );
-      fetchRechargeHistory();
-    } catch (error: any) {
-      console.error("Failed to approve recharge:", error);
+      // Update current user data if admin is handling their own recharge
+      if (user.id === user?.id) {
+        await refreshUserData();
+      }
+      
+    } catch (error) {
+      console.error('Error approving recharge:', error);
       toast({
-        title: "Error",
-        description: error.message || "Failed to approve the recharge request",
+        title: "Failed to approve recharge",
+        description: "There was an error approving this recharge request.",
         variant: "destructive",
       });
     } finally {
@@ -194,51 +207,66 @@ export const useAdminActions = () => {
     }
   };
 
-  const handleRejectRecharge = (userId: string, rechargeId: string) => {
+  // Handle reject recharge
+  const handleRejectRecharge = async (userId: string, rechargeId: string) => {
     try {
       setProcessingRecharge(rechargeId);
       
+      // Get users array
       const users = JSON.parse(localStorage.getItem('users') || '[]');
       const userIndex = users.findIndex((u: any) => u.id === userId);
       
       if (userIndex === -1) {
-        throw new Error("User not found");
+        throw new Error('User not found');
       }
       
+      // Find recharge in user's history
       const user = users[userIndex];
-      const rechargeIndex = user.rechargeHistory.findIndex(
-        (r: any) => r.id === rechargeId
-      );
+      const rechargeIndex = user.rechargeHistory.findIndex((r: any) => r.id === rechargeId);
       
       if (rechargeIndex === -1) {
-        throw new Error("Recharge request not found");
+        throw new Error('Recharge request not found');
       }
       
-      const recharge = user.rechargeHistory[rechargeIndex];
+      // Update recharge status
+      user.rechargeHistory[rechargeIndex] = {
+        ...user.rechargeHistory[rechargeIndex],
+        status: 'rejected',
+        rejectedAt: new Date().toISOString()
+      };
       
-      if (recharge.status !== 'pending') {
-        throw new Error("This request has already been processed");
-      }
-      
-      recharge.status = 'rejected';
-      
+      // Update users array in localStorage
       users[userIndex] = user;
       localStorage.setItem('users', JSON.stringify(users));
       
-      toast({
-        title: "Recharge rejected",
-        description: "The recharge request has been rejected",
+      // Refresh lists
+      fetchPendingRecharges();
+      fetchRechargeHistory();
+      
+      // Create notification for the user
+      const notifications = JSON.parse(localStorage.getItem('notifications') || '[]');
+      notifications.push({
+        id: `notification-${Date.now()}`,
+        receiverId: userId,
+        type: 'recharge-rejected',
+        title: 'Recharge Rejected',
+        message: 'Your recharge request has been rejected. Please contact admin for details.',
+        read: false,
+        createdAt: new Date().toISOString()
       });
       
-      setPendingRecharges(prev => 
-        prev.filter(r => !(r.userId === userId && r.rechargeId === rechargeId))
-      );
-      fetchRechargeHistory();
-    } catch (error: any) {
-      console.error("Failed to reject recharge:", error);
+      localStorage.setItem('notifications', JSON.stringify(notifications));
+      
       toast({
-        title: "Error",
-        description: error.message || "Failed to reject the recharge request",
+        title: "Recharge rejected",
+        description: `Rejected recharge request for ${user.name}.`,
+      });
+      
+    } catch (error) {
+      console.error('Error rejecting recharge:', error);
+      toast({
+        title: "Failed to reject recharge",
+        description: "There was an error rejecting this recharge request.",
         variant: "destructive",
       });
     } finally {
@@ -246,21 +274,22 @@ export const useAdminActions = () => {
     }
   };
 
+  // Update UPI info
   const handleUpdateUPI = () => {
     try {
-      // Store the UPI QR code image in localStorage
-      localStorage.setItem('upiImage', upiImage);
-      localStorage.setItem('upiId', upiId);
+      // Save UPI info to localStorage
+      const upiInfo = { image: upiImage, upiId };
+      localStorage.setItem('upiInfo', JSON.stringify(upiInfo));
       
       toast({
         title: "UPI info updated",
-        description: "The UPI information has been updated successfully",
+        description: "UPI information has been updated successfully.",
       });
     } catch (error) {
-      console.error("Failed to update UPI info:", error);
+      console.error('Error updating UPI info:', error);
       toast({
-        title: "Error",
-        description: "Failed to update UPI information",
+        title: "Failed to update UPI info",
+        description: "There was an error updating UPI information.",
         variant: "destructive",
       });
     }

@@ -1,8 +1,6 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "@/contexts/CartContext";
-import { useOrders } from "@/contexts/OrderContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -10,7 +8,6 @@ import Navbar from "@/components/layout/Navbar";
 import ShippingForm from "@/components/checkout/ShippingForm";
 import PaymentForm from "@/components/checkout/PaymentForm";
 import OrderSummary from "@/components/checkout/OrderSummary";
-import { orderAPI } from "@/services/api";
 
 const Checkout: React.FC = () => {
   const { cartItems, getTotalPrice, clearCart } = useCart();
@@ -24,11 +21,8 @@ const Checkout: React.FC = () => {
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
   const [zip, setZip] = useState("");
-  const [cardNumber, setCardNumber] = useState("");
-  const [cardExpiry, setCardExpiry] = useState("");
-  const [cardCvv, setCardCvv] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
-  const [useWalletBalance, setUseWalletBalance] = useState(false);
+  const [useWalletBalance, setUseWalletBalance] = useState(true); // Default to true since it's the only option now
   const [remainingAmount, setRemainingAmount] = useState(getTotalPrice());
   
   const totalPrice = getTotalPrice();
@@ -54,7 +48,8 @@ const Checkout: React.FC = () => {
   }, [useWalletBalance, balance, totalPrice]);
 
   const handleWalletToggle = () => {
-    setUseWalletBalance(!useWalletBalance);
+    // Since we only have wallet payment now, always keep it enabled
+    setUseWalletBalance(true);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -69,58 +64,64 @@ const Checkout: React.FC = () => {
       return;
     }
     
-    if (remainingAmount > 0 && (!cardNumber || !cardExpiry || !cardCvv)) {
+    // Check if user has enough balance
+    if (balance < totalPrice) {
       toast({
-        title: "Missing payment information",
-        description: "Please fill out all payment fields.",
+        title: "Insufficient balance",
+        description: "Your wallet balance is not enough for this purchase. Please add more funds.",
         variant: "destructive",
       });
+      
+      // Navigate to profile with SuperCharge dialog open
+      navigate('/profile', { state: { openSuperCharge: true } });
       return;
-    }
-    
-    // Check if user has enough balance when trying to use wallet
-    if (useWalletBalance && balance < totalPrice && remainingAmount > 0) {
-      if (balance <= 0) {
-        toast({
-          title: "Insufficient balance",
-          description: "Your wallet has no funds. Please add balance or use card payment.",
-          variant: "destructive",
-        });
-        return;
-      }
     }
     
     setIsProcessing(true);
     
     try {
-      const paymentMethod = useWalletBalance ? 
-        (remainingAmount > 0 ? "wallet_and_card" : "wallet") : "card";
+      // Process the order using wallet payment
+      const orderId = `order-${Date.now()}`;
       
-      const response = await orderAPI.createOrder({
+      // Create order entry
+      const orderData = {
+        id: orderId,
+        userId: user?.id,
+        items: cartItems,
+        total: totalPrice,
         shippingAddress: { name, email, address, city, state, zip },
-        paymentMethod,
-        useWalletBalance
-      });
+        paymentMethod: "wallet",
+        status: "completed",
+        createdAt: new Date().toISOString()
+      };
       
-      if (response.data) {
-        // Update user balance after successful order
-        await refreshUserData();
-        clearCart();
-        navigate(`/order-success/${response.data._id}`);
-      } else {
-        throw new Error("Failed to create order.");
+      // Get existing orders or initialize
+      const existingOrders = JSON.parse(localStorage.getItem('orders') || '[]');
+      existingOrders.push(orderData);
+      localStorage.setItem('orders', JSON.stringify(existingOrders));
+      
+      // Update user balance
+      const users = JSON.parse(localStorage.getItem('users') || '[]');
+      const userIndex = users.findIndex((u: any) => u.id === user?.id);
+      
+      if (userIndex !== -1) {
+        users[userIndex].balance -= totalPrice;
+        localStorage.setItem('users', JSON.stringify(users));
       }
+      
+      // Update current user session
+      await refreshUserData();
+      
+      // Clear cart
+      clearCart();
+      
+      // Navigate to success page
+      navigate(`/order-success/${orderId}`);
     } catch (error: any) {
-      let errorMessage = "An error occurred during checkout.";
-      if (error.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-      
+      console.error("Checkout error:", error);
       toast({
         title: "Checkout failed",
-        description: errorMessage,
+        description: error.message || "An error occurred during checkout.",
         variant: "destructive",
       });
     } finally {
@@ -163,20 +164,18 @@ const Checkout: React.FC = () => {
                     totalPrice={totalPrice}
                     remainingAmount={remainingAmount}
                     needsRecharge={needsRecharge}
-                    cardNumber={cardNumber}
-                    setCardNumber={setCardNumber}
-                    cardExpiry={cardExpiry}
-                    setCardExpiry={setCardExpiry}
-                    cardCvv={cardCvv}
-                    setCardCvv={setCardCvv}
                   />
                   
                   <Button 
                     type="submit" 
                     className="w-full py-6"
-                    disabled={isProcessing}
+                    disabled={isProcessing || needsRecharge}
                   >
-                    {isProcessing ? "Processing..." : `Pay ₹${remainingAmount.toFixed(2)}`}
+                    {isProcessing ? "Processing..." : (
+                      needsRecharge ? 
+                        "Add More Balance to Continue" : 
+                        `Pay ₹${totalPrice.toFixed(2)} from Wallet`
+                    )}
                   </Button>
                 </form>
               </div>

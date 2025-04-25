@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { format } from "date-fns";
 import { ListCheck, ListX } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +36,12 @@ const RechargeHistoryTab: React.FC<RechargeHistoryTabProps> = ({
   activeTab,
   onTabChange,
 }) => {
+  const [viewType, setViewType] = useState<'approved' | 'rejected'>('approved');
+  
+  const handleViewTypeChange = (type: 'approved' | 'rejected') => {
+    setViewType(type);
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'approved':
@@ -47,13 +53,15 @@ const RechargeHistoryTab: React.FC<RechargeHistoryTabProps> = ({
     }
   };
 
+  const filteredHistory = rechargeHistory.filter(recharge => recharge.status === viewType);
+
   return (
     <>
       <div className="flex gap-2 mb-4">
         <Button 
           size="sm" 
-          variant={activeTab === "rechargeHistory" ? "secondary" : "outline"}
-          onClick={() => onTabChange("rechargeHistory")}
+          variant={viewType === "approved" ? "secondary" : "outline"}
+          onClick={() => handleViewTypeChange("approved")}
           className="flex items-center"
         >
           <ListCheck size={16} className="mr-2" />
@@ -61,8 +69,8 @@ const RechargeHistoryTab: React.FC<RechargeHistoryTabProps> = ({
         </Button>
         <Button 
           size="sm" 
-          variant={activeTab === "rejectedRecharges" ? "secondary" : "outline"}
-          onClick={() => onTabChange("rejectedRecharges")}
+          variant={viewType === "rejected" ? "secondary" : "outline"}
+          onClick={() => handleViewTypeChange("rejected")}
           className="flex items-center"
         >
           <ListX size={16} className="mr-2" />
@@ -70,8 +78,8 @@ const RechargeHistoryTab: React.FC<RechargeHistoryTabProps> = ({
         </Button>
       </div>
 
-      {rechargeHistory.length === 0 ? (
-        <p className="text-muted-foreground">No recharge history found.</p>
+      {filteredHistory.length === 0 ? (
+        <p className="text-muted-foreground">No {viewType} recharges found.</p>
       ) : (
         <div className="overflow-x-auto">
           <Table>
@@ -87,31 +95,25 @@ const RechargeHistoryTab: React.FC<RechargeHistoryTabProps> = ({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {rechargeHistory
-                .filter(recharge => 
-                  activeTab === "rechargeHistory" 
-                    ? recharge.status === 'approved' 
-                    : recharge.status === 'rejected'
-                )
-                .map((recharge) => (
-                  <TableRow key={recharge.id}>
-                    <TableCell>{recharge.userName}</TableCell>
-                    <TableCell>
-                      {format(new Date(recharge.createdAt), 'MMM d, yyyy HH:mm')}
-                    </TableCell>
-                    <TableCell>₹{recharge.amount}</TableCell>
-                    <TableCell>
-                      {recharge.status === 'approved' ? `+${recharge.pointsAdded}` : '-'}
-                    </TableCell>
-                    <TableCell>
-                      {recharge.status === 'approved' && recharge.bonusPoints > 0 
-                        ? `+${recharge.bonusPoints}` 
-                        : '-'}
-                    </TableCell>
-                    <TableCell className="font-mono text-sm">{recharge.utrId}</TableCell>
-                    <TableCell>{getStatusBadge(recharge.status)}</TableCell>
-                  </TableRow>
-                ))}
+              {filteredHistory.map((recharge) => (
+                <TableRow key={recharge.id}>
+                  <TableCell>{recharge.userName}</TableCell>
+                  <TableCell>
+                    {format(new Date(recharge.createdAt), 'MMM d, yyyy HH:mm')}
+                  </TableCell>
+                  <TableCell>₹{recharge.amount}</TableCell>
+                  <TableCell>
+                    {recharge.status === 'approved' ? `+${recharge.pointsAdded}` : '-'}
+                  </TableCell>
+                  <TableCell>
+                    {recharge.status === 'approved' && recharge.bonusPoints > 0 
+                      ? `+${recharge.bonusPoints}` 
+                      : '-'}
+                  </TableCell>
+                  <TableCell className="font-mono text-sm">{recharge.utrId}</TableCell>
+                  <TableCell>{getStatusBadge(recharge.status)}</TableCell>
+                </TableRow>
+              ))}
             </TableBody>
           </Table>
         </div>

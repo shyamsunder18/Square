@@ -1,6 +1,7 @@
 
 import React, { createContext, useState, useContext, useEffect, ReactNode } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 
 type User = {
   id: string;
@@ -8,6 +9,7 @@ type User = {
   email: string;
   isAdmin?: boolean;
   balance?: number;
+  rechargeHistory?: any[];
 };
 
 type AuthContextType = {
@@ -73,11 +75,29 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const refreshUserData = async () => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      const parsedUser = JSON.parse(storedUser);
-      setUser(parsedUser);
-      setBalance(parsedUser.balance || 0);
+    if (!user) return;
+    
+    try {
+      const users = JSON.parse(localStorage.getItem('users') || '[]');
+      const currentUser = users.find((u: any) => u.id === user.id);
+      
+      if (currentUser) {
+        const updatedUser = {
+          id: currentUser.id,
+          name: currentUser.name,
+          email: currentUser.email,
+          isAdmin: currentUser.isAdmin || false,
+          balance: currentUser.balance || 0,
+          rechargeHistory: currentUser.rechargeHistory || []
+        };
+        
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        setUser(updatedUser);
+        setBalance(updatedUser.balance);
+        return updatedUser;
+      }
+    } catch (error) {
+      console.error("Failed to refresh user data:", error);
     }
   };
 
@@ -96,7 +116,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         name: foundUser.name,
         email: foundUser.email,
         isAdmin: foundUser.isAdmin || false,
-        balance: foundUser.balance || 0
+        balance: foundUser.balance || 0,
+        rechargeHistory: foundUser.rechargeHistory || []
       };
       
       localStorage.setItem('user', JSON.stringify(userData));
@@ -107,6 +128,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         title: "Login successful",
         description: `Welcome back, ${userData.name}!`,
       });
+      
+      return userData;
     } catch (error: any) {
       console.error("Login error:", error);
       
@@ -136,7 +159,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         email,
         password, // In a real app, this should be hashed
         isAdmin: false,
-        balance: 0
+        balance: 0,
+        rechargeHistory: []
       };
       
       // Add to users array
@@ -149,7 +173,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         name: newUser.name,
         email: newUser.email,
         isAdmin: newUser.isAdmin,
-        balance: newUser.balance
+        balance: newUser.balance,
+        rechargeHistory: newUser.rechargeHistory
       };
       
       localStorage.setItem('user', JSON.stringify(userData));
@@ -160,6 +185,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         title: "Registration successful",
         description: "Your account has been created successfully.",
       });
+      
+      return userData;
     } catch (error: any) {
       console.error("Registration error:", error);
       
@@ -181,6 +208,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       title: "Logged out",
       description: "You've been logged out successfully.",
     });
+    
+    // Force reload to clear any user-specific state
+    window.location.href = "/login";
   };
 
   const updateBalance = (newBalance: number) => {

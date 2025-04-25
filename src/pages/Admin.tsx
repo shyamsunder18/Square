@@ -52,29 +52,29 @@ const Admin = () => {
   } = useAdminActions();
 
   useEffect(() => {
-    const checkAdmin = async () => {
-      if (!isAuthenticated) {
-        navigate("/login");
-        return;
-      }
-
-      if (!isAdmin) {
-        toast({
-          title: "Access denied",
-          description: "You don't have permission to access this page",
-          variant: "destructive",
-        });
-        navigate("/");
-        return;
-      }
-
-      fetchPendingRecharges();
-      fetchRechargeHistory();
-      fetchUPIInfo();
-    };
-
     checkAdmin();
-  }, [isAdmin, isAuthenticated, navigate, toast]);
+  }, [isAdmin, isAuthenticated]);
+
+  const checkAdmin = async () => {
+    if (!isAuthenticated) {
+      navigate("/login");
+      return;
+    }
+
+    if (!isAdmin) {
+      toast({
+        title: "Access denied",
+        description: "You don't have permission to access this page",
+        variant: "destructive",
+      });
+      navigate("/");
+      return;
+    }
+
+    fetchPendingRecharges();
+    fetchRechargeHistory();
+    fetchUPIInfo();
+  };
 
   const adminNotifications = notifications.filter(n => n.receiverId === "admin");
 

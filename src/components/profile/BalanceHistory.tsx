@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -36,10 +37,16 @@ const BalanceHistory: React.FC<BalanceHistoryProps> = ({ balance }) => {
   const [superChargeDialogOpen, setSuperChargeDialogOpen] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
+  const location = useLocation();
 
   useEffect(() => {
     fetchRechargeHistory();
-  }, [user]);
+    
+    // Check if we should open SuperCharge dialog from navigation state
+    if (location.state?.openSuperCharge) {
+      setSuperChargeDialogOpen(true);
+    }
+  }, [user, location.state]);
 
   const fetchRechargeHistory = async () => {
     try {
@@ -96,6 +103,8 @@ const BalanceHistory: React.FC<BalanceHistoryProps> = ({ balance }) => {
     }
   };
 
+  const hasRejectedRecharges = rechargeHistory.some(r => r.status === 'rejected');
+
   return (
     <div className="bg-white rounded-lg shadow-sm p-6">
       <div className="flex justify-between items-center mb-6">
@@ -115,15 +124,17 @@ const BalanceHistory: React.FC<BalanceHistoryProps> = ({ balance }) => {
             SuperCharge
           </Button>
           
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => setSuperChargeDialogOpen(true)}
-            className="flex items-center text-xs"
-          >
-            <MessageSquare className="mr-1 h-3 w-3" />
-            Message Admin
-          </Button>
+          {hasRejectedRecharges && (
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setSuperChargeDialogOpen(true)}
+              className="flex items-center text-xs"
+            >
+              <MessageSquare className="mr-1 h-3 w-3" />
+              Message Admin
+            </Button>
+          )}
         </div>
       </div>
 
@@ -174,6 +185,7 @@ const BalanceHistory: React.FC<BalanceHistoryProps> = ({ balance }) => {
         isOpen={superChargeDialogOpen} 
         onOpenChange={setSuperChargeDialogOpen} 
         onSuccess={fetchRechargeHistory}
+        showMessageOption={hasRejectedRecharges}
       />
     </div>
   );

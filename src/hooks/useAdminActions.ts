@@ -84,7 +84,7 @@ export const useAdminActions = () => {
   const fetchUPIInfo = () => {
     try {
       const upiInfo = {
-        image: localStorage.getItem('upiImage') || 'https://via.placeholder.com/300x300?text=UPI+QR+Code',
+        image: localStorage.getItem('upiImage') || '',
         upiId: localStorage.getItem('upiId') || 'example@upi'
       };
       
@@ -92,6 +92,46 @@ export const useAdminActions = () => {
       setUpiId(upiInfo.upiId);
     } catch (error) {
       console.error("Failed to fetch UPI info:", error);
+    }
+  };
+
+  const calculateBonusPoints = (amount: number, userId: string): number => {
+    try {
+      const users = JSON.parse(localStorage.getItem('users') || '[]');
+      const userIndex = users.findIndex((u: any) => u.id === userId);
+      
+      if (userIndex === -1) {
+        return 0;
+      }
+      
+      const user = users[userIndex];
+      
+      // Check if user has any approved recharges before (to give first-time bonus)
+      const hasApprovedRecharges = user.rechargeHistory && 
+        user.rechargeHistory.some((r: any) => r.status === 'approved');
+      
+      if (!hasApprovedRecharges) {
+        // First time recharge bonus logic
+        if (amount < 500) {
+          return 0;
+        } else if (amount >= 500 && amount < 1000) {
+          return 50;
+        } else if (amount >= 1000 && amount < 2000) {
+          return 100;
+        } else if (amount >= 2000 && amount < 3000) {
+          return 150;
+        } else if (amount >= 3000 && amount < 4000) {
+          return 200;
+        } else {
+          return 250;
+        }
+      }
+      
+      // No bonus for subsequent recharges
+      return 0;
+    } catch (error) {
+      console.error("Error calculating bonus points:", error);
+      return 0;
     }
   };
 
@@ -123,7 +163,11 @@ export const useAdminActions = () => {
       
       recharge.status = 'approved';
       
-      const pointsToAdd = recharge.amount + recharge.bonusPoints;
+      // Calculate bonus points based on the new logic
+      const bonusPoints = calculateBonusPoints(recharge.amount, userId);
+      recharge.bonusPoints = bonusPoints;
+      
+      const pointsToAdd = recharge.amount + bonusPoints;
       user.balance = (user.balance || 0) + pointsToAdd;
       
       users[userIndex] = user;
@@ -131,7 +175,7 @@ export const useAdminActions = () => {
       
       toast({
         title: "Recharge approved",
-        description: `Added ${recharge.amount} points + ${recharge.bonusPoints} bonus points`,
+        description: `Added ${recharge.amount} points + ${bonusPoints} bonus points`,
       });
       
       setPendingRecharges(prev => 
@@ -204,6 +248,7 @@ export const useAdminActions = () => {
 
   const handleUpdateUPI = () => {
     try {
+      // Store the UPI QR code image in localStorage
       localStorage.setItem('upiImage', upiImage);
       localStorage.setItem('upiId', upiId);
       

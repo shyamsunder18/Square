@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "react-router-dom";
@@ -182,7 +181,7 @@ const BalanceHistory: React.FC<BalanceHistoryProps> = ({ balance }) => {
       )}
 
       <SuperChargeDialog 
-        isOpen={superChargeDialogOpen} 
+        open={superChargeDialogOpen} 
         onOpenChange={setSuperChargeDialogOpen} 
         onSuccess={fetchRechargeHistory}
         showMessageOption={hasRejectedRecharges}

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -20,13 +19,15 @@ import { Loader2, AlertCircle, MessageSquare } from "lucide-react";
 interface SuperChargeDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  messageAdmin?: boolean;
+  onSuccess?: () => Promise<void> | void;
+  showMessageOption?: boolean;
 }
 
 const SuperChargeDialog: React.FC<SuperChargeDialogProps> = ({
   open,
   onOpenChange,
-  messageAdmin = false,
+  onSuccess,
+  showMessageOption = false,
 }) => {
   const [amount, setAmount] = useState<string>("");
   const [utrId, setUtrId] = useState<string>("");
@@ -68,7 +69,6 @@ const SuperChargeDialog: React.FC<SuperChargeDialogProps> = ({
   const checkFirstTimeBonus = () => {
     if (!user) return;
     
-    // Get the current user full data including hasReceivedFirstTimeBonus
     const users = JSON.parse(localStorage.getItem('users') || '[]');
     const currentUser = users.find((u: any) => u.id === user.id);
     
@@ -156,7 +156,6 @@ const SuperChargeDialog: React.FC<SuperChargeDialogProps> = ({
     try {
       setIsLoading(true);
 
-      // Get users array
       const users = JSON.parse(localStorage.getItem("users") || "[]");
       const userIndex = users.findIndex((u: any) => u.id === user.id);
 
@@ -164,7 +163,6 @@ const SuperChargeDialog: React.FC<SuperChargeDialogProps> = ({
         throw new Error("User not found");
       }
 
-      // Create recharge request
       const rechargeRequest = {
         id: `recharge-${Date.now()}`,
         amount: amountValue,
@@ -173,17 +171,14 @@ const SuperChargeDialog: React.FC<SuperChargeDialogProps> = ({
         createdAt: new Date().toISOString(),
       };
 
-      // Add to user's recharge history
       if (!users[userIndex].rechargeHistory) {
         users[userIndex].rechargeHistory = [];
       }
       
       users[userIndex].rechargeHistory.push(rechargeRequest);
 
-      // Save back to localStorage
       localStorage.setItem("users", JSON.stringify(users));
 
-      // Create notification for admin
       const notifications = JSON.parse(
         localStorage.getItem("notifications") || "[]"
       );
@@ -200,7 +195,6 @@ const SuperChargeDialog: React.FC<SuperChargeDialogProps> = ({
       
       localStorage.setItem("notifications", JSON.stringify(notifications));
 
-      // Refresh user data to get the updated recharge history
       await refreshUserData();
 
       onOpenChange(false);
@@ -227,7 +221,6 @@ const SuperChargeDialog: React.FC<SuperChargeDialogProps> = ({
   };
 
   const handleMessageAdmin = () => {
-    // Create notification for admin
     if (!user) return;
     
     const notifications = JSON.parse(
@@ -257,7 +250,7 @@ const SuperChargeDialog: React.FC<SuperChargeDialogProps> = ({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
-        {messageAdmin ? (
+        {showMessageOption ? (
           <>
             <DialogHeader>
               <DialogTitle>Contact Admin</DialogTitle>
@@ -297,7 +290,6 @@ const SuperChargeDialog: React.FC<SuperChargeDialogProps> = ({
             </DialogHeader>
 
             <div className="space-y-6 py-4">
-              {/* UPI Information */}
               {upiInfo.image || upiInfo.upiId ? (
                 <div className="space-y-4">
                   <div className="flex flex-col items-center justify-center px-4 py-5 border rounded-lg bg-gray-50">

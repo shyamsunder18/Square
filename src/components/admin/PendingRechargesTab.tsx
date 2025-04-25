@@ -14,21 +14,23 @@ import {
 } from "@/components/ui/table";
 
 type PendingRecharge = {
+  id: string;
   rechargeId: string;
   userId: string;
   userName: string;
   userEmail: string;
   amount: number;
-  bonusPoints: number;
+  hasReceivedFirstTimeBonus: boolean;
   utrId: string;
-  date: string;
+  date?: string;
+  createdAt: string;
 };
 
 interface PendingRechargesTabProps {
   pendingRecharges: PendingRecharge[];
   loading: boolean;
   processingRecharge: string | null;
-  onApprove: (userId: string, rechargeId: string) => void;
+  onApprove: (userId: string, rechargeId: string, amount: number, isFirstTimeRecharge: boolean) => void;
   onReject: (userId: string, rechargeId: string) => void;
 }
 
@@ -61,7 +63,7 @@ const PendingRechargesTab: React.FC<PendingRechargesTabProps> = ({
         </TableHeader>
         <TableBody>
           {pendingRecharges.map((recharge) => (
-            <TableRow key={recharge.rechargeId}>
+            <TableRow key={recharge.id || recharge.rechargeId}>
               <TableCell>
                 <div>
                   <p className="font-medium">{recharge.userName}</p>
@@ -75,15 +77,15 @@ const PendingRechargesTab: React.FC<PendingRechargesTabProps> = ({
               </TableCell>
               <TableCell className="font-mono">{recharge.utrId}</TableCell>
               <TableCell>
-                {recharge.date ? format(new Date(recharge.date), 'MMM d, yyyy HH:mm') : 'Unknown'}
+                {recharge.createdAt ? format(new Date(recharge.createdAt), 'MMM d, yyyy HH:mm') : 'Unknown'}
               </TableCell>
               <TableCell>
                 <div className="flex space-x-2">
                   <Button
                     size="sm"
                     className="bg-green-600 hover:bg-green-700"
-                    onClick={() => onApprove(recharge.userId, recharge.rechargeId)}
-                    disabled={processingRecharge === recharge.rechargeId}
+                    onClick={() => onApprove(recharge.userId, recharge.id || recharge.rechargeId, recharge.amount, !recharge.hasReceivedFirstTimeBonus)}
+                    disabled={processingRecharge === (recharge.id || recharge.rechargeId)}
                   >
                     <Check size={16} className="mr-1" />
                     Approve
@@ -91,8 +93,8 @@ const PendingRechargesTab: React.FC<PendingRechargesTabProps> = ({
                   <Button
                     size="sm"
                     variant="destructive"
-                    onClick={() => onReject(recharge.userId, recharge.rechargeId)}
-                    disabled={processingRecharge === recharge.rechargeId}
+                    onClick={() => onReject(recharge.userId, recharge.id || recharge.rechargeId)}
+                    disabled={processingRecharge === (recharge.id || recharge.rechargeId)}
                   >
                     <X size={16} className="mr-1" />
                     Reject

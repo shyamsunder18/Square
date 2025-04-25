@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -39,6 +40,7 @@ const SuperChargeDialog: React.FC<SuperChargeDialogProps> = ({
   const [hasRejectedRecharge, setHasRejectedRecharge] = useState<boolean>(false);
   const [showBonusMessage, setShowBonusMessage] = useState<boolean>(false);
   const [potentialBonus, setPotentialBonus] = useState<number>(0);
+  const [viewMode, setViewMode] = useState<"recharge" | "message">(showMessageOption ? "message" : "recharge");
   
   const { user, refreshUserData } = useAuth();
   const { toast } = useToast();
@@ -51,13 +53,14 @@ const SuperChargeDialog: React.FC<SuperChargeDialogProps> = ({
       loadUPIInfo();
       checkRejectedRecharges();
       checkFirstTimeBonus();
+      setViewMode(showMessageOption ? "message" : "recharge");
       
       if (amountToRecharge) {
         setAmount(amountToRecharge.toString());
         updatePotentialBonus(amountToRecharge);
       }
     }
-  }, [open, amountToRecharge]);
+  }, [open, amountToRecharge, showMessageOption]);
   
   useEffect(() => {
     const numAmount = parseFloat(amount);
@@ -207,6 +210,10 @@ const SuperChargeDialog: React.FC<SuperChargeDialogProps> = ({
       
       navigate("/profile", { replace: true });
       
+      if (onSuccess) {
+        await onSuccess();
+      }
+      
     } catch (error) {
       console.error("Error submitting recharge request:", error);
       toast({
@@ -247,10 +254,14 @@ const SuperChargeDialog: React.FC<SuperChargeDialogProps> = ({
     onOpenChange(false);
   };
 
+  const toggleView = () => {
+    setViewMode(viewMode === "recharge" ? "message" : "recharge");
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
-        {showMessageOption ? (
+        {viewMode === "message" ? (
           <>
             <DialogHeader>
               <DialogTitle>Contact Admin</DialogTitle>
@@ -270,14 +281,21 @@ const SuperChargeDialog: React.FC<SuperChargeDialogProps> = ({
               </Alert>
             </div>
 
-            <DialogFooter>
-              <Button variant="outline" onClick={() => onOpenChange(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleMessageAdmin}>
-                <MessageSquare className="mr-2 h-4 w-4" />
-                Contact Admin
-              </Button>
+            <DialogFooter className="flex justify-between">
+              <div>
+                <Button variant="outline" onClick={toggleView}>
+                  Try New Recharge
+                </Button>
+              </div>
+              <div className="flex space-x-2">
+                <Button variant="outline" onClick={() => onOpenChange(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleMessageAdmin}>
+                  <MessageSquare className="mr-2 h-4 w-4" />
+                  Contact Admin
+                </Button>
+              </div>
             </DialogFooter>
           </>
         ) : (
@@ -378,12 +396,7 @@ const SuperChargeDialog: React.FC<SuperChargeDialogProps> = ({
                       type="button"
                       variant="outline"
                       className="w-full text-red-600 border-red-200 hover:bg-red-50"
-                      onClick={() => {
-                        onOpenChange(false);
-                        setTimeout(() => {
-                          onOpenChange(true);
-                        }, 100);
-                      }}
+                      onClick={toggleView}
                     >
                       <MessageSquare className="mr-2 h-4 w-4" />
                       Contact Admin about rejected recharge

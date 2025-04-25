@@ -29,9 +29,11 @@ export const useOrderActions = () => {
     
     setIsLoading(true);
     try {
-      const storedOrders = localStorage.getItem(`orders_${user.id}`);
-      const parsedOrders = storedOrders ? JSON.parse(storedOrders) : [];
-      setOrders(parsedOrders);
+      // Fetch all orders
+      const allOrders = JSON.parse(localStorage.getItem("orders") || "[]");
+      // Filter orders for current user
+      const userOrders = allOrders.filter((order: Order) => order.buyerId === user.id);
+      setOrders(userOrders);
     } catch (error) {
       console.error("Failed to fetch orders:", error);
       toast({
@@ -80,25 +82,38 @@ export const useOrderActions = () => {
         items: orderData.items || [],
         buyerId: user.id,
         totalAmount: orderData.totalAmount || 0,
-        status: "pending",
+        status: "completed",
         createdAt: new Date().toISOString()
       };
 
-      // Update orders in localStorage
-      const currentOrders = [...orders, newOrder];
-      localStorage.setItem(`orders_${user.id}`, JSON.stringify(currentOrders));
-      setOrders(currentOrders);
+      // Update global orders in localStorage
+      const allOrders = JSON.parse(localStorage.getItem("orders") || "[]");
+      allOrders.push(newOrder);
+      localStorage.setItem("orders", JSON.stringify(allOrders));
+      
+      // Update current user's orders
+      setOrders(prev => [...prev, newOrder]);
 
-      // Update sales for each seller and transfer funds to their accounts
-      const allUsers = JSON.parse(localStorage.getItem("users") || "[]");
+      // Update inventory counts for products
+      const allProducts = JSON.parse(localStorage.getItem("products") || "[]");
+      const updatedProducts = [...allProducts];
       
       // Process each item in the order
       orderData.items.forEach((item: any) => {
         const sellerId = item.sellerId;
         if (sellerId) {
-          // Update sales records
-          const storedSales = localStorage.getItem(`sales_${sellerId}`);
-          const currentSales = storedSales ? JSON.parse(storedSales) : [];
+          // Update inventory if it's a physical product
+          if (item.category === "goods" && item.count !== undefined) {
+            const productIndex = updatedProducts.findIndex((p: any) => p.id === item.id);
+            if (productIndex !== -1) {
+              // Reduce product count
+              updatedProducts[productIndex].count = Math.max(0, (updatedProducts[productIndex].count || 0) - item.quantity);
+            }
+          }
+          
+          // Update sales records for seller
+          const storedSales = localStorage.getItem(`sales_${sellerId}`) || "[]";
+          const currentSales = JSON.parse(storedSales);
           const newSale: UserSale = {
             order: newOrder,
             items: [item]
@@ -111,13 +126,14 @@ export const useOrderActions = () => {
           }
           
           // Transfer funds to seller
-          const sellerIndex = allUsers.findIndex((u: any) => u.id === sellerId);
+          const users = JSON.parse(localStorage.getItem("users") || "[]");
+          const sellerIndex = users.findIndex((u: any) => u.id === sellerId);
           if (sellerIndex !== -1) {
             // Calculate the amount to transfer (item price * quantity)
             const amountToTransfer = item.price * item.quantity;
             
             // Update seller's balance
-            allUsers[sellerIndex].balance += amountToTransfer;
+            users[sellerIndex].balance = (users[sellerIndex].balance || 0) + amountToTransfer;
             
             // Send notification to seller
             addNotification({
@@ -134,8 +150,11 @@ export const useOrderActions = () => {
         }
       });
       
+      // Save updated products
+      localStorage.setItem("products", JSON.stringify(updatedProducts));
+      
       // Save updated user balances
-      localStorage.setItem("users", JSON.stringify(allUsers));
+      localStorage.setItem("users", JSON.stringify(users));
 
       await refreshUserData();
       
@@ -169,5 +188,6 @@ export const useOrderActions = () => {
     getOrderById,
     isLoading,
     fetchOrders,
+    fetchUserSales
   };
 };

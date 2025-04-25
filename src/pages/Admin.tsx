@@ -3,37 +3,26 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNotifications } from "@/contexts/NotificationContext";
-import { useProducts } from "@/contexts/ProductContext";
-import { useOrders } from "@/contexts/OrderContext";
 import { useAdminActions } from "@/hooks/useAdminActions";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Wallet, 
-  ListOrdered,
-  ShoppingCart, 
-  Bell,
-  Inbox,
   LogOut
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import PendingRechargesTab from "@/components/admin/PendingRechargesTab";
 import RechargeHistoryTab from "@/components/admin/RechargeHistoryTab";
-import ListingsTab from "@/components/admin/ListingsTab";
 import SalesTab from "@/components/admin/SalesTab";
-import NotificationsTab from "@/components/admin/NotificationsTab";
 import UPISettingsTab from "@/components/admin/UPISettingsTab";
 
 const Admin = () => {
   const { user, isAdmin, isAuthenticated, logout } = useAuth();
   const { notifications, markAsRead } = useNotifications();
-  const { products } = useProducts();
-  const { orders } = useOrders();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("recharges");
-  const [listingsType, setListingsType] = useState("products");
   
   const {
     pendingRecharges,
@@ -84,6 +73,20 @@ const Admin = () => {
 
   const adminNotifications = notifications.filter(n => n.receiverId === "admin");
 
+  // Fetch all orders for admin view
+  const [allOrders, setAllOrders] = useState([]);
+  
+  useEffect(() => {
+    if (isAdmin) {
+      try {
+        const orders = JSON.parse(localStorage.getItem("orders") || "[]");
+        setAllOrders(orders);
+      } catch (error) {
+        console.error("Failed to fetch orders for admin:", error);
+      }
+    }
+  }, [isAdmin, activeTab]);
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Simplified Admin Nav */}
@@ -112,25 +115,10 @@ const Admin = () => {
               )}
             </TabsTrigger>
             <TabsTrigger value="rechargeHistory">
-              <Inbox className="w-4 h-4 mr-2" />
               Recharge History
             </TabsTrigger>
-            <TabsTrigger value="listings">
-              <ListOrdered className="w-4 h-4 mr-2" />
-              Listings
-            </TabsTrigger>
             <TabsTrigger value="sales">
-              <ShoppingCart className="w-4 h-4 mr-2" />
-              Sales
-            </TabsTrigger>
-            <TabsTrigger value="notifications">
-              <Bell className="w-4 h-4 mr-2" />
-              Notifications
-              {adminNotifications.filter(n => !n.read).length > 0 && (
-                <Badge variant="secondary" className="ml-2">
-                  {adminNotifications.filter(n => !n.read).length}
-                </Badge>
-              )}
+              All Sales
             </TabsTrigger>
             <TabsTrigger value="upi">Settings</TabsTrigger>
           </TabsList>
@@ -153,23 +141,8 @@ const Admin = () => {
             />
           </TabsContent>
 
-          <TabsContent value="listings" className="bg-white p-6 rounded-lg shadow-sm">
-            <ListingsTab
-              products={products}
-              listingsType={listingsType}
-              onTypeChange={setListingsType}
-            />
-          </TabsContent>
-
           <TabsContent value="sales" className="bg-white p-6 rounded-lg shadow-sm">
-            <SalesTab orders={orders} />
-          </TabsContent>
-
-          <TabsContent value="notifications" className="bg-white p-6 rounded-lg shadow-sm">
-            <NotificationsTab
-              notifications={adminNotifications}
-              onMarkAsRead={markAsRead}
-            />
+            <SalesTab orders={allOrders} />
           </TabsContent>
 
           <TabsContent value="upi" className="bg-white p-6 rounded-lg shadow-sm">

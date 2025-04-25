@@ -1,11 +1,12 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { BadgeDollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CartItem } from "@/contexts/CartContext";
-import { Order } from "@/contexts/OrderContext";
+import { Order, UserSale } from "@/contexts/OrderContext";
+import { useOrders } from "@/contexts/OrderContext";
 
 interface SalesTabProps {
   userSales: {
@@ -15,6 +16,13 @@ interface SalesTabProps {
 }
 
 const SalesTab: React.FC<SalesTabProps> = ({ userSales }) => {
+  const { fetchUserSales } = useOrders();
+  
+  useEffect(() => {
+    // Refresh sales data when component mounts
+    fetchUserSales();
+  }, []);
+  
   return (
     <div className="space-y-4">
       <h2 className="text-xl font-semibold mb-4">Your Sales</h2>
@@ -32,7 +40,7 @@ const SalesTab: React.FC<SalesTabProps> = ({ userSales }) => {
           {userSales.map(({ order, items }) => (
             <div key={order.id} className="border rounded-lg p-4">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="font-medium">Sale from Order #{order.id}</h3>
+                <h3 className="font-medium">Sale from Order #{order.id.substring(0, 8)}</h3>
                 <div className="text-gray-500 text-sm">
                   {new Date(order.createdAt).toLocaleDateString()}
                 </div>

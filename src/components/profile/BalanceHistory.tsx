@@ -1,190 +1,170 @@
+
 import React, { useState, useEffect } from "react";
-import { useToast } from "@/hooks/use-toast";
-import { useLocation } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
-import { Wallet, MessageSquare } from "lucide-react";
-import SuperChargeDialog from "./SuperChargeDialog";
+import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
+import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Wallet, TrendingUp } from "lucide-react";
+import SuperChargeDialog from "./SuperChargeDialog";
 
-type RechargeHistory = {
-  id: string;
-  amount: number;
-  pointsAdded: number;
-  bonusPoints: number;
-  status: 'pending' | 'approved' | 'rejected';
-  utrId: string;
-  createdAt: string;
-};
-
-type BalanceHistoryProps = {
+interface BalanceHistoryProps {
   balance: number;
-};
+}
 
 const BalanceHistory: React.FC<BalanceHistoryProps> = ({ balance }) => {
-  const [rechargeHistory, setRechargeHistory] = useState<RechargeHistory[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [superChargeDialogOpen, setSuperChargeDialogOpen] = useState(false);
-  const { toast } = useToast();
+  const [rechargeHistory, setRechargeHistory] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [superChargeOpen, setSuperChargeOpen] = useState(false);
+  const [showRejectedMessage, setShowRejectedMessage] = useState(false);
   const { user } = useAuth();
-  const location = useLocation();
 
   useEffect(() => {
-    fetchRechargeHistory();
-    
-    // Check if we should open SuperCharge dialog from navigation state
-    if (location.state?.openSuperCharge) {
-      setSuperChargeDialogOpen(true);
+    if (user) {
+      loadRechargeHistory();
     }
-  }, [user, location.state]);
+  }, [user]);
 
-  const fetchRechargeHistory = async () => {
+  const loadRechargeHistory = () => {
+    if (!user) return;
+    
+    setIsLoading(true);
     try {
-      setLoading(true);
+      // Get all users from localStorage
+      const users = JSON.parse(localStorage.getItem("users") || "[]");
       
-      // Get recharge history from localStorage
-      if (user) {
-        const users = JSON.parse(localStorage.getItem('users') || '[]');
-        const currentUser = users.find((u: any) => u.id === user.id);
+      // Find current user
+      const currentUser = users.find((u: any) => u.id === user.id);
+      
+      if (currentUser && currentUser.rechargeHistory) {
+        // Sort by date, newest first
+        const sortedHistory = [...currentUser.rechargeHistory].sort(
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
         
-        // Initialize recharge history if it doesn't exist
-        const history = currentUser?.rechargeHistory || [];
+        setRechargeHistory(sortedHistory);
         
-        // Convert to the expected format
-        const formattedHistory = history.map((entry: any) => ({
-          id: entry.id || `recharge-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-          amount: entry.amount,
-          pointsAdded: entry.pointsAdded,
-          bonusPoints: entry.bonusPoints || 0,
-          status: entry.status,
-          utrId: entry.utrId,
-          createdAt: entry.createdAt
-        }));
-        
-        setRechargeHistory(formattedHistory);
-      } else {
-        // No user logged in
-        setRechargeHistory([]);
+        // Check if there are any rejected recharges
+        const hasRejected = sortedHistory.some((recharge: any) => recharge.status === "rejected");
+        setShowRejectedMessage(hasRejected);
       }
     } catch (error) {
-      console.error("Failed to fetch recharge history:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load your balance history",
-        variant: "destructive",
-      });
-      // Initialize with empty array on error
-      setRechargeHistory([]);
+      console.error("Failed to load recharge history:", error);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusColor = (status: string) => {
     switch (status) {
-      case 'approved':
-        return <Badge className="bg-green-600">Approved</Badge>;
-      case 'rejected':
-        return <Badge variant="destructive">Rejected</Badge>;
-      case 'pending':
-        return <Badge variant="outline" className="text-amber-600 border-amber-600">Pending</Badge>;
+      case "approved":
+        return "bg-green-100 text-green-800";
+      case "pending":
+        return "bg-yellow-100 text-yellow-800";
+      case "rejected":
+        return "bg-red-100 text-red-800";
       default:
-        return <Badge variant="outline">{status}</Badge>;
+        return "bg-gray-100 text-gray-800";
     }
   };
-
-  const hasRejectedRecharges = rechargeHistory.some(r => r.status === 'rejected');
 
   return (
-    <div className="bg-white rounded-lg shadow-sm p-6">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h2 className="text-xl font-bold">Your Balance</h2>
-          <div className="flex items-center mt-2">
-            <Wallet className="mr-2 text-primary" />
-            <span className="text-2xl font-bold">{balance} points</span>
-          </div>
-        </div>
-        
-        <div className="flex flex-col gap-2">
-          <Button 
-            className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
-            onClick={() => setSuperChargeDialogOpen(true)}
-          >
-            SuperCharge
-          </Button>
-          
-          {hasRejectedRecharges && (
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => setSuperChargeDialogOpen(true)}
-              className="flex items-center text-xs"
-            >
-              <MessageSquare className="mr-1 h-3 w-3" />
-              Message Admin
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg font-medium">Current Balance</CardTitle>
+            <CardDescription>Your available funds</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center space-x-2">
+              <Wallet className="h-8 w-8 text-gray-400" />
+              <span className="text-3xl font-bold">₹{balance.toFixed(2)}</span>
+            </div>
+          </CardContent>
+          <CardFooter className="pt-0">
+            <Button onClick={() => setSuperChargeOpen(true)} className="w-full">
+              <TrendingUp className="mr-2 h-4 w-4" />
+              SuperCharge Wallet
             </Button>
-          )}
-        </div>
+          </CardFooter>
+        </Card>
+        
+        {showRejectedMessage && (
+          <Card className="bg-red-50 border-red-100">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg font-medium text-red-800">Recharge Rejected</CardTitle>
+              <CardDescription className="text-red-700">One or more of your recharge requests were rejected</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-red-700">Please check your transaction details or contact admin for more information.</p>
+            </CardContent>
+            <CardFooter className="pt-2">
+              <Button 
+                variant="outline" 
+                className="w-full border-red-200 text-red-700 hover:bg-red-100"
+                onClick={() => setSuperChargeOpen(true)}
+              >
+                Contact Admin / Try Again
+              </Button>
+            </CardFooter>
+          </Card>
+        )}
       </div>
-
-      <h3 className="text-lg font-semibold mb-4 mt-8">Recharge History</h3>
       
-      {loading ? (
+      <h3 className="text-lg font-medium mt-8">Recharge History</h3>
+      
+      {isLoading ? (
         <p>Loading history...</p>
       ) : rechargeHistory.length === 0 ? (
-        <p className="text-muted-foreground">No recharge history found. SuperCharge your account to get started!</p>
+        <p className="text-muted-foreground">No recharge history found.</p>
       ) : (
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Points</TableHead>
-                <TableHead>Bonus</TableHead>
-                <TableHead>UTR ID</TableHead>
-                <TableHead>Status</TableHead>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Date</TableHead>
+              <TableHead>Amount</TableHead>
+              <TableHead>UTR/Reference</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Bonus</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {rechargeHistory.map((recharge) => (
+              <TableRow key={recharge.id}>
+                <TableCell>
+                  {format(new Date(recharge.createdAt), "MMM d, yyyy HH:mm")}
+                </TableCell>
+                <TableCell>
+                  <Badge variant="outline" className="font-mono">
+                    ₹{recharge.amount?.toFixed(2) || "0.00"}
+                  </Badge>
+                </TableCell>
+                <TableCell className="font-mono text-xs">{recharge.utrId}</TableCell>
+                <TableCell>
+                  <span className={`px-2 py-1 rounded-full text-xs ${getStatusColor(recharge.status)}`}>
+                    {recharge.status}
+                  </span>
+                </TableCell>
+                <TableCell>
+                  {recharge.bonusPoints ? (
+                    <span className="text-green-600">+{recharge.bonusPoints}</span>
+                  ) : (
+                    "-"
+                  )}
+                </TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rechargeHistory.map((recharge) => (
-                <TableRow key={recharge.id}>
-                  <TableCell>
-                    {format(new Date(recharge.createdAt), 'MMM d, yyyy HH:mm')}
-                  </TableCell>
-                  <TableCell>₹{recharge.amount}</TableCell>
-                  <TableCell>
-                    {recharge.status === 'approved' ? `+${recharge.pointsAdded}` : '-'}
-                  </TableCell>
-                  <TableCell>
-                    {recharge.status === 'approved' && recharge.bonusPoints > 0 
-                      ? `+${recharge.bonusPoints}` 
-                      : '-'}
-                  </TableCell>
-                  <TableCell className="font-mono text-sm">{recharge.utrId}</TableCell>
-                  <TableCell>{getStatusBadge(recharge.status)}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+            ))}
+          </TableBody>
+        </Table>
       )}
 
-      <SuperChargeDialog 
-        open={superChargeDialogOpen} 
-        onOpenChange={setSuperChargeDialogOpen} 
-        onSuccess={fetchRechargeHistory}
-        showMessageOption={hasRejectedRecharges}
+      <SuperChargeDialog
+        open={superChargeOpen}
+        onOpenChange={setSuperChargeOpen}
+        onSuccess={loadRechargeHistory}
+        showMessageOption={showRejectedMessage}
       />
     </div>
   );

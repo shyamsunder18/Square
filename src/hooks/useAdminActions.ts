@@ -40,7 +40,7 @@ export const useAdminActions = () => {
                 userName: user.name,
                 userEmail: user.email,
                 amount: recharge.amount,
-                hasReceivedFirstTimeBonus: recharge.hasReceivedFirstTimeBonus || false,
+                hasReceivedFirstTimeBonus: user.hasReceivedFirstTimeBonus || false,
                 utrId: recharge.utrId,
                 createdAt: recharge.createdAt
               });
@@ -165,7 +165,7 @@ export const useAdminActions = () => {
 
       // Calculate bonus points based on the recharge amount (only for first time)
       let bonusPoints = 0;
-      if (isFirstTimeRecharge) {
+      if (isFirstTimeRecharge && !users[userIndex].hasReceivedFirstTimeBonus) {
         if (amount >= 4000) {
           bonusPoints = 250;
         } else if (amount >= 3000) {
@@ -177,6 +177,9 @@ export const useAdminActions = () => {
         } else if (amount >= 500) {
           bonusPoints = 50;
         }
+        
+        // Mark that user has received first-time bonus
+        users[userIndex].hasReceivedFirstTimeBonus = true;
       }
 
       // Find the recharge in the user's history
@@ -192,7 +195,6 @@ export const useAdminActions = () => {
       users[userIndex].rechargeHistory[rechargeIndex].status = "approved";
       users[userIndex].rechargeHistory[rechargeIndex].pointsAdded = amount;
       users[userIndex].rechargeHistory[rechargeIndex].bonusPoints = bonusPoints;
-      users[userIndex].rechargeHistory[rechargeIndex].hasReceivedFirstTimeBonus = true;
       
       // Update user balance
       users[userIndex].balance += amount + bonusPoints;

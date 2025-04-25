@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useOrders } from "@/contexts/OrderContext";
 import { useProducts } from "@/contexts/ProductContext";
@@ -37,7 +36,7 @@ const PurchasesTab: React.FC = () => {
   useEffect(() => {
     // Refresh orders when the component mounts
     fetchOrders();
-  }, []);
+  }, [fetchOrders]);
   
   const hasUserReviewedProduct = (productId: string, orderId: string) => {
     const product = getProductById(productId);

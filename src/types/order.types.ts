@@ -23,4 +23,6 @@ export type OrderContextType = {
   userSales: UserSale[];
   createOrder: (orderData: any) => Promise<string | null>;
   getOrderById: (id: string) => Order | null;
+  fetchOrders: () => void;
+  fetchUserSales: () => void;
 };

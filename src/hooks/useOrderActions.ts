@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -13,7 +12,6 @@ export const useOrderActions = () => {
   const { toast } = useToast();
   const { addNotification } = useNotifications();
 
-  // Load data from localStorage when component mounts
   useEffect(() => {
     if (user) {
       fetchOrders();
@@ -29,9 +27,7 @@ export const useOrderActions = () => {
     
     setIsLoading(true);
     try {
-      // Fetch all orders
       const allOrders = JSON.parse(localStorage.getItem("orders") || "[]");
-      // Filter orders for current user
       const userOrders = allOrders.filter((order: Order) => order.buyerId === user.id);
       setOrders(userOrders);
     } catch (error) {
@@ -86,32 +82,25 @@ export const useOrderActions = () => {
         createdAt: new Date().toISOString()
       };
 
-      // Update global orders in localStorage
       const allOrders = JSON.parse(localStorage.getItem("orders") || "[]");
       allOrders.push(newOrder);
       localStorage.setItem("orders", JSON.stringify(allOrders));
       
-      // Update current user's orders
       setOrders(prev => [...prev, newOrder]);
 
-      // Update inventory counts for products
       const allProducts = JSON.parse(localStorage.getItem("products") || "[]");
       const updatedProducts = [...allProducts];
       
-      // Process each item in the order
       orderData.items.forEach((item: any) => {
         const sellerId = item.sellerId;
         if (sellerId) {
-          // Update inventory if it's a physical product
           if (item.category === "goods" && item.count !== undefined) {
             const productIndex = updatedProducts.findIndex((p: any) => p.id === item.id);
             if (productIndex !== -1) {
-              // Reduce product count
               updatedProducts[productIndex].count = Math.max(0, (updatedProducts[productIndex].count || 0) - item.quantity);
             }
           }
           
-          // Update sales records for seller
           const storedSales = localStorage.getItem(`sales_${sellerId}`) || "[]";
           const currentSales = JSON.parse(storedSales);
           const newSale: UserSale = {
@@ -125,17 +114,11 @@ export const useOrderActions = () => {
             setUserSales(updatedSales);
           }
           
-          // Transfer funds to seller
-          const users = JSON.parse(localStorage.getItem("users") || "[]");
-          const sellerIndex = users.findIndex((u: any) => u.id === sellerId);
+          const allUsers = JSON.parse(localStorage.getItem("users") || "[]");
+          const sellerIndex = allUsers.findIndex((u: any) => u.id === sellerId);
           if (sellerIndex !== -1) {
-            // Calculate the amount to transfer (item price * quantity)
             const amountToTransfer = item.price * item.quantity;
-            
-            // Update seller's balance
-            users[sellerIndex].balance = (users[sellerIndex].balance || 0) + amountToTransfer;
-            
-            // Send notification to seller
+            allUsers[sellerIndex].balance = (allUsers[sellerIndex].balance || 0) + amountToTransfer;
             addNotification({
               title: "New Sale!",
               message: `${user.name} purchased ${item.title} for ₹${amountToTransfer}. Funds have been added to your balance.`,
@@ -150,11 +133,9 @@ export const useOrderActions = () => {
         }
       });
       
-      // Save updated products
       localStorage.setItem("products", JSON.stringify(updatedProducts));
       
-      // Save updated user balances
-      localStorage.setItem("users", JSON.stringify(users));
+      localStorage.setItem("users", JSON.stringify(allUsers));
 
       await refreshUserData();
       

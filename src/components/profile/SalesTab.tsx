@@ -1,12 +1,10 @@
-
 import React, { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { BadgeDollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CartItem } from "@/contexts/CartContext";
-import { Order, UserSale } from "@/contexts/OrderContext";
-import { useOrders } from "@/contexts/OrderContext";
+import { Order, UserSale, useOrders } from "@/contexts/OrderContext";
 
 interface SalesTabProps {
   userSales: {
@@ -21,7 +19,7 @@ const SalesTab: React.FC<SalesTabProps> = ({ userSales }) => {
   useEffect(() => {
     // Refresh sales data when component mounts
     fetchUserSales();
-  }, []);
+  }, [fetchUserSales]);
   
   return (
     <div className="space-y-4">

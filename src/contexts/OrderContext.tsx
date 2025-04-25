@@ -11,7 +11,9 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     userOrders, 
     userSales, 
     createOrder, 
-    getOrderById 
+    getOrderById,
+    fetchOrders,
+    fetchUserSales
   } = useOrderActions();
 
   return (
@@ -22,6 +24,8 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         userSales,
         createOrder,
         getOrderById,
+        fetchOrders,
+        fetchUserSales
       }}
     >
       {children}
@@ -37,5 +41,5 @@ export const useOrders = () => {
   return context;
 };
 
-// Re-export the Order type
-export type { Order } from "@/types/order.types";
+// Re-export the Order type and UserSale type
+export type { Order, UserSale } from "@/types/order.types";

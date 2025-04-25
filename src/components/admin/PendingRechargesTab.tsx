@@ -30,8 +30,8 @@ interface PendingRechargesTabProps {
   pendingRecharges: PendingRecharge[];
   loading: boolean;
   processingRecharge: string | null;
-  onApprove: (userId: string, rechargeId: string, amount: number, isFirstTimeRecharge: boolean) => void;
-  onReject: (userId: string, rechargeId: string) => void;
+  onApprove: (userId: string, rechargeId: string, amount: number, isFirstTimeRecharge: boolean) => Promise<boolean>;
+  onReject: (userId: string, rechargeId: string) => Promise<boolean>;
 }
 
 const PendingRechargesTab: React.FC<PendingRechargesTabProps> = ({
@@ -84,7 +84,12 @@ const PendingRechargesTab: React.FC<PendingRechargesTabProps> = ({
                   <Button
                     size="sm"
                     className="bg-green-600 hover:bg-green-700"
-                    onClick={() => onApprove(recharge.userId, recharge.id || recharge.rechargeId, recharge.amount, !recharge.hasReceivedFirstTimeBonus)}
+                    onClick={() => onApprove(
+                      recharge.userId, 
+                      recharge.id || recharge.rechargeId, 
+                      recharge.amount,
+                      !recharge.hasReceivedFirstTimeBonus
+                    )}
                     disabled={processingRecharge === (recharge.id || recharge.rechargeId)}
                   >
                     <Check size={16} className="mr-1" />

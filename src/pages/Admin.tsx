@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -5,7 +6,6 @@ import { useNotifications } from "@/contexts/NotificationContext";
 import { useProducts } from "@/contexts/ProductContext";
 import { useOrders } from "@/contexts/OrderContext";
 import { useAdminActions } from "@/hooks/useAdminActions";
-import Navbar from "@/components/layout/Navbar";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
@@ -14,8 +14,10 @@ import {
   ListOrdered,
   ShoppingCart, 
   Bell,
-  Inbox
+  Inbox,
+  LogOut
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import PendingRechargesTab from "@/components/admin/PendingRechargesTab";
 import RechargeHistoryTab from "@/components/admin/RechargeHistoryTab";
 import ListingsTab from "@/components/admin/ListingsTab";
@@ -24,7 +26,7 @@ import NotificationsTab from "@/components/admin/NotificationsTab";
 import UPISettingsTab from "@/components/admin/UPISettingsTab";
 
 const Admin = () => {
-  const { user, isAdmin, isAuthenticated } = useAuth();
+  const { user, isAdmin, isAuthenticated, logout } = useAuth();
   const { notifications, markAsRead } = useNotifications();
   const { products } = useProducts();
   const { orders } = useOrders();
@@ -75,14 +77,29 @@ const Admin = () => {
     fetchUPIInfo();
   };
 
+  const handleLogout = async () => {
+    await logout();
+    navigate("/login");
+  };
+
   const adminNotifications = notifications.filter(n => n.receiverId === "admin");
 
   return (
-    <>
-      <Navbar />
-      <div className="container mx-auto py-8 px-4">
-        <h1 className="text-3xl font-bold mb-6">Admin Dashboard</h1>
+    <div className="min-h-screen bg-gray-50">
+      {/* Simplified Admin Nav */}
+      <div className="bg-white shadow-sm py-4 px-6">
+        <div className="container mx-auto flex justify-between items-center">
+          <div className="flex items-center">
+            <h1 className="text-xl font-bold">Admin Dashboard</h1>
+          </div>
+          <Button variant="ghost" onClick={handleLogout} className="flex items-center">
+            <LogOut className="mr-2 h-4 w-4" />
+            Logout
+          </Button>
+        </div>
+      </div>
 
+      <div className="container mx-auto py-8 px-4">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="mb-6">
             <TabsTrigger value="recharges">
@@ -166,7 +183,7 @@ const Admin = () => {
           </TabsContent>
         </Tabs>
       </div>
-    </>
+    </div>
   );
 };
 

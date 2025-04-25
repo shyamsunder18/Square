@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { useNotifications } from "@/contexts/NotificationContext";
 import { Order, UserSale } from "@/types/order.types";
 
 export const useOrderActions = () => {
@@ -10,6 +11,7 @@ export const useOrderActions = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { user, refreshUserData } = useAuth();
   const { toast } = useToast();
+  const { addNotification } = useNotifications();
 
   // Load data from localStorage when component mounts
   useEffect(() => {
@@ -87,10 +89,14 @@ export const useOrderActions = () => {
       localStorage.setItem(`orders_${user.id}`, JSON.stringify(currentOrders));
       setOrders(currentOrders);
 
-      // Update sales for the seller
+      // Update sales for each seller and transfer funds to their accounts
+      const allUsers = JSON.parse(localStorage.getItem("users") || "[]");
+      
+      // Process each item in the order
       orderData.items.forEach((item: any) => {
         const sellerId = item.sellerId;
         if (sellerId) {
+          // Update sales records
           const storedSales = localStorage.getItem(`sales_${sellerId}`);
           const currentSales = storedSales ? JSON.parse(storedSales) : [];
           const newSale: UserSale = {
@@ -103,8 +109,33 @@ export const useOrderActions = () => {
           if (sellerId === user.id) {
             setUserSales(updatedSales);
           }
+          
+          // Transfer funds to seller
+          const sellerIndex = allUsers.findIndex((u: any) => u.id === sellerId);
+          if (sellerIndex !== -1) {
+            // Calculate the amount to transfer (item price * quantity)
+            const amountToTransfer = item.price * item.quantity;
+            
+            // Update seller's balance
+            allUsers[sellerIndex].balance += amountToTransfer;
+            
+            // Send notification to seller
+            addNotification({
+              title: "New Sale!",
+              message: `${user.name} purchased ${item.title} for ₹${amountToTransfer}. Funds have been added to your balance.`,
+              type: "order",
+              item: {
+                id: orderId,
+                title: item.title
+              },
+              receiverId: sellerId
+            });
+          }
         }
       });
+      
+      // Save updated user balances
+      localStorage.setItem("users", JSON.stringify(allUsers));
 
       await refreshUserData();
       

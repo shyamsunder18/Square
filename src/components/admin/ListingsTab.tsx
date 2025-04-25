@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Product } from "@/types/product.types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -75,8 +75,14 @@ const ListingsTab: React.FC<ListingsTabProps> = ({
                     <TableCell>{product.category}</TableCell>
                     <TableCell>{product.sellerId}</TableCell>
                     <TableCell>
-                      <Badge className={product.count !== 0 ? "bg-green-600" : "bg-red-600"}>
-                        {product.count !== 0 ? "Available" : "Unavailable"}
+                      <Badge className={
+                        product.category === "services" || (product.count && product.count > 0) 
+                          ? "bg-green-600" 
+                          : "bg-red-600"
+                      }>
+                        {product.category === "services" || (product.count && product.count > 0) 
+                          ? "Available" 
+                          : "Out of Stock"}
                       </Badge>
                     </TableCell>
                   </TableRow>

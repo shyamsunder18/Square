@@ -1,16 +1,14 @@
+
 import React, { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { BadgeDollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CartItem } from "@/contexts/CartContext";
-import { Order, UserSale, useOrders } from "@/contexts/OrderContext";
+import { useOrders } from "@/contexts/OrderContext";
+import { Order, UserSale } from "@/types/order.types";
 
 interface SalesTabProps {
-  userSales: {
-    order: Order;
-    items: CartItem[];
-  }[];
+  userSales: UserSale[];
 }
 
 const SalesTab: React.FC<SalesTabProps> = ({ userSales }) => {
@@ -35,18 +33,18 @@ const SalesTab: React.FC<SalesTabProps> = ({ userSales }) => {
         </div>
       ) : (
         <div className="space-y-4">
-          {userSales.map(({ order, items }) => (
-            <div key={order.id} className="border rounded-lg p-4">
+          {userSales.map((sale, index) => (
+            <div key={`${sale.order.id}-${index}`} className="border rounded-lg p-4">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="font-medium">Sale from Order #{order.id.substring(0, 8)}</h3>
+                <h3 className="font-medium">Sale from Order #{sale.order.id.substring(0, 8)}</h3>
                 <div className="text-gray-500 text-sm">
-                  {new Date(order.createdAt).toLocaleDateString()}
+                  {new Date(sale.order.createdAt).toLocaleDateString()}
                 </div>
               </div>
               
               <div className="space-y-2 mb-4">
-                {items.map((item) => (
-                  <div key={item.id} className="flex justify-between items-center bg-gray-50 p-2 rounded">
+                {sale.items.map((item, itemIndex) => (
+                  <div key={`${item.id}-${itemIndex}`} className="flex justify-between items-center bg-gray-50 p-2 rounded">
                     <div className="flex items-center">
                       <img
                         src={item.image || "https://via.placeholder.com/40"}
@@ -73,7 +71,7 @@ const SalesTab: React.FC<SalesTabProps> = ({ userSales }) => {
               <div className="flex justify-between border-t pt-3">
                 <span>Sale Amount:</span>
                 <span className="font-semibold">
-                  ₹{items.reduce((sum, item) => sum + item.price * item.quantity, 0).toFixed(2)}
+                  ₹{sale.items.reduce((sum, item) => sum + item.price * item.quantity, 0).toFixed(2)}
                 </span>
               </div>
             </div>

@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, ReactNode } from "react";
 import { useOrderActions } from "@/hooks/useOrderActions";
-import { OrderContextType } from "@/types/order.types";
+import { OrderContextType, Order, UserSale } from "@/types/order.types";
 
 const OrderContext = createContext<OrderContextType | undefined>(undefined);
 

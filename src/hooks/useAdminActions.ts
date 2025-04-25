@@ -124,6 +124,29 @@ export const useAdminActions = () => {
     }
   };
 
+  // Function to handle UPI image file upload
+  const uploadUPIImage = async (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          // Convert file to base64 string
+          const base64String = event.target.result.toString();
+          resolve(base64String);
+        } else {
+          reject(new Error("Failed to read file"));
+        }
+      };
+      
+      reader.onerror = (error) => {
+        reject(error);
+      };
+      
+      reader.readAsDataURL(file);
+    });
+  };
+
   const handleUpdateUPI = async () => {
     try {
       // Save UPI info to localStorage
@@ -318,5 +341,6 @@ export const useAdminActions = () => {
     handleApproveRecharge,
     handleRejectRecharge,
     handleUpdateUPI,
+    uploadUPIImage,
   };
 };

@@ -4,25 +4,30 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNotifications } from "@/contexts/NotificationContext";
 import { useAdminActions } from "@/hooks/useAdminActions";
+import { useProducts } from "@/contexts/ProductContext";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Wallet, 
-  LogOut
+  LogOut,
+  Package
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import PendingRechargesTab from "@/components/admin/PendingRechargesTab";
 import RechargeHistoryTab from "@/components/admin/RechargeHistoryTab";
 import SalesTab from "@/components/admin/SalesTab";
 import UPISettingsTab from "@/components/admin/UPISettingsTab";
+import ListingsTab from "@/components/admin/ListingsTab";
 
 const Admin = () => {
   const { user, isAdmin, isAuthenticated, logout } = useAuth();
   const { notifications, markAsRead } = useNotifications();
+  const { products } = useProducts();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("recharges");
+  const [listingsType, setListingsType] = useState("products");
   
   const {
     pendingRecharges,
@@ -39,6 +44,7 @@ const Admin = () => {
     handleApproveRecharge,
     handleRejectRecharge,
     handleUpdateUPI,
+    uploadUPIImage,
   } = useAdminActions();
 
   useEffect(() => {
@@ -120,6 +126,10 @@ const Admin = () => {
             <TabsTrigger value="sales">
               All Sales
             </TabsTrigger>
+            <TabsTrigger value="listings">
+              <Package className="w-4 h-4 mr-2" />
+              All Listings
+            </TabsTrigger>
             <TabsTrigger value="upi">Settings</TabsTrigger>
           </TabsList>
 
@@ -144,6 +154,14 @@ const Admin = () => {
           <TabsContent value="sales" className="bg-white p-6 rounded-lg shadow-sm">
             <SalesTab orders={allOrders} />
           </TabsContent>
+          
+          <TabsContent value="listings" className="bg-white p-6 rounded-lg shadow-sm">
+            <ListingsTab
+              products={products}
+              listingsType={listingsType}
+              onTypeChange={setListingsType}
+            />
+          </TabsContent>
 
           <TabsContent value="upi" className="bg-white p-6 rounded-lg shadow-sm">
             <UPISettingsTab
@@ -152,6 +170,7 @@ const Admin = () => {
               onUpiImageChange={setUpiImage}
               onUpiIdChange={setUpiId}
               onUpdateUPI={handleUpdateUPI}
+              onUploadImage={uploadUPIImage}
             />
           </TabsContent>
         </Tabs>

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useOrders } from "@/contexts/OrderContext";
 import { useProducts } from "@/contexts/ProductContext";
@@ -44,7 +45,7 @@ const PurchasesTab: React.FC = () => {
     
     return product.reviews.some(review => review.orderId === orderId);
   };
-  
+
   return (
     <div className="space-y-6">
       <h3 className="text-lg font-medium">Your Purchases</h3>

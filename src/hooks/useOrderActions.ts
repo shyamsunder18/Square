@@ -83,18 +83,26 @@ export const useOrderActions = () => {
         createdAt: new Date().toISOString()
       };
 
+      // Get all existing orders
       const allOrders = JSON.parse(localStorage.getItem("orders") || "[]");
       allOrders.push(newOrder);
       localStorage.setItem("orders", JSON.stringify(allOrders));
       
+      // Update user's orders in state
       setOrders(prev => [...prev, newOrder]);
 
+      // Get all products
       const allProducts = JSON.parse(localStorage.getItem("products") || "[]");
       const updatedProducts = [...allProducts];
       
+      // Get all users for updating balances
+      const users = JSON.parse(localStorage.getItem("users") || "[]");
+      
+      // Process each item in the order
       orderData.items.forEach((item: any) => {
         const sellerId = item.sellerId;
         if (sellerId) {
+          // Update product inventory if it's a goods item
           if (item.category === "goods" && item.count !== undefined) {
             const productIndex = updatedProducts.findIndex((p: any) => p.id === item.id);
             if (productIndex !== -1) {
@@ -102,6 +110,7 @@ export const useOrderActions = () => {
             }
           }
           
+          // Update seller's sales history
           const storedSales = localStorage.getItem(`sales_${sellerId}`) || "[]";
           const currentSales = JSON.parse(storedSales);
           const newSale: UserSale = {
@@ -111,15 +120,18 @@ export const useOrderActions = () => {
           const updatedSales = [...currentSales, newSale];
           localStorage.setItem(`sales_${sellerId}`, JSON.stringify(updatedSales));
           
+          // If current user is the seller, update their sales state
           if (sellerId === user.id) {
             setUserSales(updatedSales);
           }
           
-          const users = JSON.parse(localStorage.getItem("users") || "[]");
+          // Transfer funds to seller's balance
           const sellerIndex = users.findIndex((u: any) => u.id === sellerId);
           if (sellerIndex !== -1) {
             const amountToTransfer = item.price * item.quantity;
             users[sellerIndex].balance = (users[sellerIndex].balance || 0) + amountToTransfer;
+            
+            // Create notification for seller
             addNotification({
               title: "New Sale!",
               message: `${user.name} purchased ${item.title} for ₹${amountToTransfer}. Funds have been added to your balance.`,
@@ -131,14 +143,16 @@ export const useOrderActions = () => {
               receiverId: sellerId
             });
           }
-          
-          // Save updated users to localStorage
-          localStorage.setItem("users", JSON.stringify(users));
         }
       });
       
+      // Save updated products to localStorage
       localStorage.setItem("products", JSON.stringify(updatedProducts));
+      
+      // Save updated users to localStorage
+      localStorage.setItem("users", JSON.stringify(users));
 
+      // Refresh current user's data
       await refreshUserData();
       
       toast({

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -114,11 +115,11 @@ export const useOrderActions = () => {
             setUserSales(updatedSales);
           }
           
-          const allUsers = JSON.parse(localStorage.getItem("users") || "[]");
-          const sellerIndex = allUsers.findIndex((u: any) => u.id === sellerId);
+          const users = JSON.parse(localStorage.getItem("users") || "[]");
+          const sellerIndex = users.findIndex((u: any) => u.id === sellerId);
           if (sellerIndex !== -1) {
             const amountToTransfer = item.price * item.quantity;
-            allUsers[sellerIndex].balance = (allUsers[sellerIndex].balance || 0) + amountToTransfer;
+            users[sellerIndex].balance = (users[sellerIndex].balance || 0) + amountToTransfer;
             addNotification({
               title: "New Sale!",
               message: `${user.name} purchased ${item.title} for ₹${amountToTransfer}. Funds have been added to your balance.`,
@@ -130,12 +131,13 @@ export const useOrderActions = () => {
               receiverId: sellerId
             });
           }
+          
+          // Save updated users to localStorage
+          localStorage.setItem("users", JSON.stringify(users));
         }
       });
       
       localStorage.setItem("products", JSON.stringify(updatedProducts));
-      
-      localStorage.setItem("users", JSON.stringify(allUsers));
 
       await refreshUserData();
       
